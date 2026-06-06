@@ -280,7 +280,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
           """;
           _webViewController = WebViewController()
             ..setJavaScriptMode(JavaScriptMode.unrestricted)
-            ..enableZoom(false)
+            ..enableZoom(true)
             ..setBackgroundColor(const Color(0xFF1E1E2C))
             ..setNavigationDelegate(
               NavigationDelegate(
@@ -755,6 +755,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               },
               body: TabBarView(
                 controller: _tabController,
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildDescriptionTab(),
                   _buildReviewsTab(),
@@ -940,6 +941,14 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                       borderRadius: BorderRadius.circular(12),
                       child: WebViewWidget(
                         controller: _webViewController!,
+                        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                          Factory<OneSequenceGestureRecognizer>(
+                            () => ScaleGestureRecognizer()
+                              ..onStart = (_) {}
+                              ..onUpdate = (_) {}
+                              ..onEnd = (_) {},
+                          ),
+                        },
                       ),
                     ),
                   )
