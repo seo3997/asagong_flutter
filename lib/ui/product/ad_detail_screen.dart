@@ -61,8 +61,25 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
   }
 
   Future<void> _updateWebViewHeight() async {
-    // 옵션 2: 동적 높이 계산 비활성화
-    return;
+    if (_webViewController == null) return;
+    try {
+      final result = await _webViewController!.runJavaScriptReturningResult(
+        "Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight, document.body.clientHeight, document.documentElement.clientHeight);"
+      );
+      if (result != null) {
+        final cleanResult = result.toString().replaceAll('"', '').replaceAll("'", '').trim();
+        final heightVal = double.tryParse(cleanResult);
+        if (heightVal != null && heightVal > 0) {
+          if (mounted) {
+            setState(() {
+              _webViewHeight = heightVal + 20.0;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to get webview height: $e");
+    }
   }
 
   Widget? _buildFAB() {
@@ -263,8 +280,20 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
           """;
           _webViewController = WebViewController()
             ..setJavaScriptMode(JavaScriptMode.unrestricted)
-            ..enableZoom(true)
+            ..enableZoom(false)
             ..setBackgroundColor(const Color(0xFF1E1E2C))
+            ..setNavigationDelegate(
+              NavigationDelegate(
+                onPageFinished: (url) {
+                  Future.delayed(const Duration(milliseconds: 200), () {
+                    _updateWebViewHeight();
+                  });
+                  Future.delayed(const Duration(seconds: 1), () {
+                    _updateWebViewHeight();
+                  });
+                },
+              ),
+            )
             ..loadHtmlString(htmlContent);
         }
       }
@@ -911,11 +940,6 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                       borderRadius: BorderRadius.circular(12),
                       child: WebViewWidget(
                         controller: _webViewController!,
-                        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                          Factory<OneSequenceGestureRecognizer>(
-                            () => EagerGestureRecognizer(),
-                          ),
-                        },
                       ),
                     ),
                   )
