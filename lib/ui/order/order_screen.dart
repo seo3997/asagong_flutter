@@ -161,8 +161,12 @@ class _OrderScreenState extends State<OrderScreen> {
                 itemBuilder: (ctx, idx) {
                   final addr = list[idx];
                   return ListTile(
-                    title: Text(addr.recipientName, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text('${addr.addressMain} ${addr.addressDetail}', style: const TextStyle(color: Colors.white70)),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    title: Text('${addr.recipientName} (${addr.recipientPhone})', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('${addr.addressMain} ${addr.addressDetail}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    ),
                     onTap: () {
                       Navigator.pop(ctx);
                       _applyAddress(addr);
@@ -399,13 +403,17 @@ class _OrderScreenState extends State<OrderScreen> {
                   _buildTextField('연락처', _receiverPhoneController, '전화번호를 입력해 주세요 (예: 010-0000-0000)', keyboardType: TextInputType.phone),
                   const SizedBox(height: 14),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(child: _buildTextField('우편번호', _zipCodeController, '우편번호', readOnly: true)),
                       const SizedBox(width: 10),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2E1A47),
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                         onPressed: _searchAddress,
                         child: const Text('우편번호 검색', style: TextStyle(color: Colors.white)),
@@ -455,18 +463,24 @@ class _OrderScreenState extends State<OrderScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 40),
-
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF9100),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: _showPaymentConfirmDialog,
-                    child: const Text('주문하기', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                  ),
+                  const SizedBox(height: 20),
                 ],
+              ),
+            ),
+      bottomNavigationBar: _isLoading
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF9100),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: _showPaymentConfirmDialog,
+                  child: const Text('주문하기', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
               ),
             ),
     );
