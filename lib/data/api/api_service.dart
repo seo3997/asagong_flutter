@@ -311,6 +311,26 @@ class ApiService {
     }
   }
 
+  /// Requests return (api/payment/return)
+  Future<bool> requestReturn(String token, Map<String, dynamic> req) async {
+    final response = await client.post(
+      Uri.parse('$baseUrl/api/payment/return'),
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(req),
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      return body['success'] as bool? ?? false;
+    } else {
+      return false;
+    }
+  }
+
+
   /// Updates user profile details (api/members/update)
   Future<SimpleResultResponse> updateUser(String token, OpUserVo user) async {
     final response = await client.post(
@@ -374,6 +394,94 @@ class ApiService {
       return res.items;
     } else {
       throw Exception('Fetch Buy Advertise List Failed: ${response.statusCode}');
+    }
+  }
+
+  /// Fetches interest items list (api/product/interests/list)
+  Future<List<AdItem>> getInterestItems(String token, int pageNo) async {
+    final Map<String, String> headers = {
+      'Accept': 'application/json',
+    };
+    if (token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    final response = await client.get(
+      Uri.parse('$baseUrl/api/product/interests/list').replace(
+        queryParameters: {'token': token, 'pageno': pageNo.toString()},
+      ),
+      headers: headers,
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      final res = AdResponse.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+      return res.items;
+    } else {
+      throw Exception('Fetch Interest Items Failed: ${response.statusCode}');
+    }
+  }
+
+  /// Fetches purchase items list (api/product/purchases/list)
+  Future<List<AdItem>> getPurchaseItems(String token, int pageNo) async {
+    final Map<String, String> headers = {
+      'Accept': 'application/json',
+    };
+    if (token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    final response = await client.get(
+      Uri.parse('$baseUrl/api/product/purchases/list').replace(
+        queryParameters: {'token': token, 'pageno': pageNo.toString()},
+      ),
+      headers: headers,
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      final res = AdResponse.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+      return res.items;
+    } else {
+      throw Exception('Fetch Purchase Items Failed: ${response.statusCode}');
+    }
+  }
+
+  /// Fetches order history for a buyer (api/orders/buyer/{buyerNo})
+  Future<List<AdItem>> getOrderHistory(String token, int buyerNo, int page, int size) async {
+    final Map<String, String> headers = {
+      'Accept': 'application/json',
+    };
+    if (token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    final requestUrl = Uri.parse('$baseUrl/api/orders/buyer/$buyerNo').replace(
+      queryParameters: {'page': page.toString(), 'size': size.toString()},
+    );
+
+    print("[DEBUG] getOrderHistory Request URL: $requestUrl");
+    print("[DEBUG] getOrderHistory Headers: $headers");
+
+    try {
+      final response = await client.get(
+        requestUrl,
+        headers: headers,
+      ).timeout(const Duration(seconds: 30));
+
+      print("[DEBUG] getOrderHistory Status Code: ${response.statusCode}");
+      print("[DEBUG] getOrderHistory Response Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final res = AdResponse.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+        print("[DEBUG] getOrderHistory Parsed items count: ${res.items.length}");
+        return res.items;
+      } else {
+        print("[DEBUG] getOrderHistory Failed with status: ${response.statusCode}");
+        throw Exception('Fetch Order History Failed: ${response.statusCode}');
+      }
+    } catch (e, stack) {
+      print("[DEBUG] getOrderHistory Exception: $e");
+      print("[DEBUG] getOrderHistory Stack: $stack");
+      rethrow;
     }
   }
 

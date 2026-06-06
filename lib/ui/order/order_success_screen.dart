@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OrderSuccessScreen extends StatelessWidget {
   final Map<String, dynamic> arguments;
@@ -77,8 +78,16 @@ class OrderSuccessScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: () {
-                  Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final role = prefs.getString('saved_member_code') ?? '';
+                  if (context.mounted) {
+                    if (role == 'ROLE_SELL' || role == 'ROLE_PROJ') {
+                      Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+                    } else {
+                      Navigator.pushNamedAndRemoveUntil(context, '/pubHome', (route) => false);
+                    }
+                  }
                 },
                 child: const Text(
                   '홈으로',
@@ -104,12 +113,18 @@ class OrderSuccessScreen extends StatelessWidget {
           label,
           style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            color: isValueHighlighted ? const Color(0xFFFF9100) : Colors.white,
-            fontSize: isValueHighlighted ? 18 : 14,
-            fontWeight: isValueHighlighted ? FontWeight.bold : FontWeight.normal,
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: TextStyle(
+              color: isValueHighlighted ? const Color(0xFFFF9100) : Colors.white,
+              fontSize: isValueHighlighted ? 18 : 14,
+              fontWeight: isValueHighlighted ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
         ),
       ],

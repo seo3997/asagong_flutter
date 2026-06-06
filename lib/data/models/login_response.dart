@@ -125,8 +125,8 @@ class LoginResponse extends Equatable {
       loginCd: json['login_cd'] as String? ?? '',
       loginSocialId: json['login_social_id'] as String? ?? '',
       loginPwd: json['login_pwd'] as String? ?? '',
-      branchInfo: json['branch_info'] != null
-          ? BranchInfoVo.fromJson(json['branch_info'] as Map<String, dynamic>)
+      branchInfo: (json['branch_info'] ?? json['BRANCH_INFO']) != null
+          ? BranchInfoVo.fromJson((json['branch_info'] ?? json['BRANCH_INFO']) as Map<String, dynamic>)
           : null,
     );
   }

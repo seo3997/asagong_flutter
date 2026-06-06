@@ -90,9 +90,9 @@ class OrderCreateResponse {
       success: json['success'] as bool? ?? false,
       message: json['message'] as String?,
       orderId: json['orderId'] as int?,
-      orderNo: (json['orderNo'] ?? '').toString(),
-      orderName: (json['orderName'] ?? '').toString(),
-      amount: (json['amount'] as num? ?? 0).toInt(),
+      orderNo: (json['orderNo'] ?? json['order_no'] ?? json['ORDER_NO'] ?? '').toString(),
+      orderName: (json['orderName'] ?? json['order_name'] ?? json['ORDER_NAME'] ?? '').toString(),
+      amount: (json['amount'] as num? ?? json['AMOUNT'] as num? ?? 0).toInt(),
     );
   }
 }

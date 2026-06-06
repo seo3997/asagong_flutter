@@ -19,16 +19,14 @@ import '../../data/models/approval_status.dart';
 class AdDetailScreen extends StatefulWidget {
   final String productId;
 
-  const AdDetailScreen({
-    super.key,
-    required this.productId,
-  });
+  const AdDetailScreen({super.key, required this.productId});
 
   @override
   State<AdDetailScreen> createState() => _AdDetailScreenState();
 }
 
-class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProviderStateMixin {
+class _AdDetailScreenState extends State<AdDetailScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
   String _memberCode = '';
@@ -64,10 +62,14 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
     if (_webViewController == null) return;
     try {
       final result = await _webViewController!.runJavaScriptReturningResult(
-        "Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight, document.body.clientHeight, document.documentElement.clientHeight);"
+        "Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight, document.body.clientHeight, document.documentElement.clientHeight);",
       );
       if (result != null) {
-        final cleanResult = result.toString().replaceAll('"', '').replaceAll("'", '').trim();
+        final cleanResult = result
+            .toString()
+            .replaceAll('"', '')
+            .replaceAll("'", '')
+            .trim();
         final heightVal = double.tryParse(cleanResult);
         if (heightVal != null && heightVal > 0) {
           if (mounted) {
@@ -90,19 +92,27 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
         return FloatingActionButton.extended(
           backgroundColor: const Color(0xFFFF9100),
           icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-          label: const Text('채팅하기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          label: const Text(
+            '채팅하기',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
           onPressed: _handleFabClick,
         );
       case 1:
         if (!isBuyer) return null;
         return FloatingActionButton.extended(
           backgroundColor: const Color(0xFFFF9100),
-          label: const Text('리뷰 등록', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          label: const Text(
+            '리뷰 등록',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
           icon: const Icon(Icons.edit, color: Colors.white),
           onPressed: () {
-            Navigator.pushNamed(context, '/reviewWrite', arguments: {
-              'productId': int.tryParse(widget.productId) ?? 0,
-            }).then((success) {
+            Navigator.pushNamed(
+              context,
+              '/reviewWrite',
+              arguments: {'productId': int.tryParse(widget.productId) ?? 0},
+            ).then((success) {
               if (success == true) _loadAllData();
             });
           },
@@ -111,12 +121,17 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
         if (!isBuyer) return null;
         return FloatingActionButton.extended(
           backgroundColor: const Color(0xFFFF9100),
-          label: const Text('문의 등록', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          label: const Text(
+            '문의 등록',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
           icon: const Icon(Icons.help_outline, color: Colors.white),
           onPressed: () {
-            Navigator.pushNamed(context, '/qnaWrite', arguments: {
-              'productId': int.tryParse(widget.productId) ?? 0,
-            }).then((success) {
+            Navigator.pushNamed(
+              context,
+              '/qnaWrite',
+              arguments: {'productId': int.tryParse(widget.productId) ?? 0},
+            ).then((success) {
               if (success == true) _loadAllData();
             });
           },
@@ -140,7 +155,9 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: const Color(0xFF2E1A47),
-          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.08))),
+          border: Border(
+            top: BorderSide(color: Colors.white.withOpacity(0.08)),
+          ),
         ),
         child: Row(
           children: [
@@ -148,13 +165,21 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white.withOpacity(0.08),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 side: BorderSide(color: Colors.white.withOpacity(0.12)),
               ),
               onPressed: _handleFabClick,
               icon: const Icon(Icons.chat_bubble_outline, size: 18),
-              label: const Text('채팅하기', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text(
+                '채팅하기',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -163,29 +188,47 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                   backgroundColor: const Color(0xFFFF9100),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: product.saleStatus == '1'
                     ? () {
-                        final representImg = _detail?.imageMetas.firstWhere(
-                          (img) => img.represent == '1',
-                          orElse: () => ProductImageVo(represent: '1', imageUrl: ''),
-                        ).imageUrl ?? '';
+                        final representImg =
+                            _detail?.imageMetas
+                                .firstWhere(
+                                  (img) => img.represent == '1',
+                                  orElse: () => ProductImageVo(
+                                    represent: '1',
+                                    imageUrl: '',
+                                  ),
+                                )
+                                .imageUrl ??
+                            '';
 
-                        Navigator.pushNamed(context, '/order', arguments: {
-                          'productId': int.tryParse(product.productId ?? '') ?? 0,
-                          'productName': product.title,
-                          'unitPrice': (double.tryParse(product.price) ?? 0.0).toInt(),
-                          'selectedOption': product.unitCodeNm,
-                          'quantity': _orderQuantity,
-                          'productImage': representImg,
-                          'branchId': product.branchId,
-                        });
+                        Navigator.pushNamed(
+                          context,
+                          '/order',
+                          arguments: {
+                            'productId':
+                                int.tryParse(product.productId ?? '') ?? 0,
+                            'productName': product.title,
+                            'unitPrice': (double.tryParse(product.price) ?? 0.0)
+                                .toInt(),
+                            'selectedOption': product.unitCodeNm,
+                            'quantity': _orderQuantity,
+                            'productImage': representImg,
+                            'branchId': product.branchId,
+                          },
+                        );
                       }
                     : null,
                 child: Text(
                   product.saleStatus == '1' ? '구매하기' : '판매 완료',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -246,7 +289,8 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
           if (description.contains('&lt;') || description.contains('&gt;')) {
             description = _decodeHtml(description);
           }
-          final htmlContent = """
+          final htmlContent =
+              """
             <html>
             <head>
                 <meta charset="utf-8">
@@ -305,11 +349,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
       // 3. Load QnAs
       final qnas = await appService.getQnaList(productIdVal);
       _qnas = qnas;
-
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('데이터 로딩 오류: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('데이터 로딩 오류: $e')));
     } finally {
       if (mounted) {
         setState(() {
@@ -335,13 +378,15 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
           _isFav = !_isFav;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_isFav ? '관심상품으로 등록되었습니다.' : '관심상품이 해제되었습니다.')),
+          SnackBar(
+            content: Text(_isFav ? '관심상품으로 등록되었습니다.' : '관심상품이 해제되었습니다.'),
+          ),
         );
       }
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('관심등록 처리 중 오류가 발생했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('관심등록 처리 중 오류가 발생했습니다.')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -381,13 +426,20 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
     }
   }
 
-  void _showBuyerSelectionDialog(List<ChatBuyerDto> buyers, String label, String code) {
+  void _showBuyerSelectionDialog(
+    List<ChatBuyerDto> buyers,
+    String label,
+    String code,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF2E1A47),
-          title: const Text('구매완료 처리 - 구매자 선택', style: TextStyle(color: Colors.white)),
+          title: const Text(
+            '구매완료 처리 - 구매자 선택',
+            style: TextStyle(color: Colors.white),
+          ),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -396,8 +448,14 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               itemBuilder: (ctx, idx) {
                 final buyer = buyers[idx];
                 return ListTile(
-                  title: Text(buyer.buyerNm, style: const TextStyle(color: Colors.white)),
-                  subtitle: Text(buyer.buyerId, style: const TextStyle(color: Colors.white70)),
+                  title: Text(
+                    buyer.buyerNm,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  subtitle: Text(
+                    buyer.buyerId,
+                    style: const TextStyle(color: Colors.white70),
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     _showStatusConfirmDialog(label, code, buyer);
@@ -412,7 +470,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                 Navigator.pop(context);
                 _showStatusConfirmDialog(label, code, null);
               },
-              child: const Text('선택없이 진행', style: TextStyle(color: Color(0xFFFF9100))),
+              child: const Text(
+                '선택없이 진행',
+                style: TextStyle(color: Color(0xFFFF9100)),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -424,8 +485,14 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
     );
   }
 
-  void _showStatusConfirmDialog(String label, String code, ChatBuyerDto? buyer) {
-    final message = '상태를 "$label"(으)로 변경하시겠습니까?' + (buyer != null ? '\n구매자: ${buyer.buyerNm}' : '');
+  void _showStatusConfirmDialog(
+    String label,
+    String code,
+    ChatBuyerDto? buyer,
+  ) {
+    final message =
+        '상태를 "$label"(으)로 변경하시겠습니까?' +
+        (buyer != null ? '\n구매자: ${buyer.buyerNm}' : '');
     showDialog(
       context: context,
       builder: (context) {
@@ -439,7 +506,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                 Navigator.pop(context);
                 await _updateProductStatus(code, buyer);
               },
-              child: const Text('확인', style: TextStyle(color: Color(0xFFFF9100))),
+              child: const Text(
+                '확인',
+                style: TextStyle(color: Color(0xFFFF9100)),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -462,7 +532,12 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
 
     try {
       if (code == '99' && buyer != null) {
-        await appService.createPurchase(pid, buyer.buyerNo.toInt(), buyer.roomId, buyer.sellerNo.toInt());
+        await appService.createPurchase(
+          pid,
+          buyer.buyerNo.toInt(),
+          buyer.roomId,
+          buyer.sellerNo.toInt(),
+        );
       }
 
       final request = ProductApprovalRequest(
@@ -474,19 +549,19 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
 
       final success = await appService.updateProductStatus(_token!, request);
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('상태가 변경되었습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('상태가 변경되었습니다.')));
         _loadAllData();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('상태 변경에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('상태 변경에 실패했습니다.')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류가 발생했습니다: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('오류가 발생했습니다: $e')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -509,21 +584,34 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
         builder: (ctx) {
           return SimpleDialog(
             backgroundColor: const Color(0xFF2E1A47),
-            title: const Text('문의 채팅 선택', style: TextStyle(color: Colors.white)),
+            title: const Text(
+              '문의 채팅 선택',
+              style: TextStyle(color: Colors.white),
+            ),
             children: [
               SimpleDialogOption(
                 onPressed: () {
                   Navigator.pop(ctx);
                   _fetchRoomListForSeller(pid, _branchId);
                 },
-                child: const Text('구매자에게 채팅', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  '구매자에게 채팅',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
               SimpleDialogOption(
                 onPressed: () {
                   Navigator.pop(ctx);
-                  _createOrGetChatRoom(pid, _branchId, Constants.centerBranchId);
+                  _createOrGetChatRoom(
+                    pid,
+                    _branchId,
+                    Constants.centerBranchId,
+                  );
                 },
-                child: const Text('본사와 채팅', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  '본사와 채팅',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           );
@@ -532,25 +620,37 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
     }
   }
 
-  Future<void> _createOrGetChatRoom(String productId, String buyerId, String branchId) async {
+  Future<void> _createOrGetChatRoom(
+    String productId,
+    String buyerId,
+    String branchId,
+  ) async {
     final appService = RepositoryProvider.of<AppService>(context);
     setState(() {
       _isLoading = true;
     });
     try {
-      final room = await appService.createOrGetChatRoom(int.tryParse(productId) ?? 0, buyerId, branchId);
+      final room = await appService.createOrGetChatRoom(
+        int.tryParse(productId) ?? 0,
+        buyerId,
+        branchId,
+      );
       if (room != null) {
-        Navigator.pushNamed(context, '/chat', arguments: {
-          'roomId': room.roomId,
-          'buyerId': buyerId,
-          'branchId': branchId,
-          'productId': productId,
-        });
+        Navigator.pushNamed(
+          context,
+          '/chat',
+          arguments: {
+            'roomId': room.roomId,
+            'buyerId': buyerId,
+            'branchId': branchId,
+            'productId': productId,
+          },
+        );
       }
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('채팅방 연결 실패')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('채팅방 연결 실패')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -558,31 +658,41 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
     }
   }
 
-  Future<void> _fetchRoomListForSeller(String productId, String branchId) async {
+  Future<void> _fetchRoomListForSeller(
+    String productId,
+    String branchId,
+  ) async {
     final appService = RepositoryProvider.of<AppService>(context);
     setState(() {
       _isLoading = true;
     });
     try {
-      final rooms = await appService.getUserChatRooms(int.tryParse(productId) ?? 0, branchId);
+      final rooms = await appService.getUserChatRooms(
+        int.tryParse(productId) ?? 0,
+        branchId,
+      );
       if (rooms.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('진행 중인 채팅 문의가 없습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('진행 중인 채팅 문의가 없습니다.')));
       } else if (rooms.length == 1) {
-        Navigator.pushNamed(context, '/chat', arguments: {
-          'roomId': rooms[0].roomId,
-          'buyerId': rooms[0].buyerId,
-          'branchId': rooms[0].branchId,
-          'productId': productId,
-        });
+        Navigator.pushNamed(
+          context,
+          '/chat',
+          arguments: {
+            'roomId': rooms[0].roomId,
+            'buyerId': rooms[0].buyerId,
+            'branchId': rooms[0].branchId,
+            'productId': productId,
+          },
+        );
       } else {
         _showChatRoomSelectionDialog(rooms);
       }
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('채팅 목록 조회 실패')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('채팅 목록 조회 실패')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -605,15 +715,22 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               itemBuilder: (ctx, idx) {
                 final room = rooms[idx];
                 return ListTile(
-                  title: Text('구매자 ID: ${room.buyerId}', style: const TextStyle(color: Colors.white)),
+                  title: Text(
+                    '구매자 ID: ${room.buyerId}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.pushNamed(context, '/chat', arguments: {
-                      'roomId': room.roomId,
-                      'buyerId': room.buyerId,
-                      'branchId': room.branchId,
-                      'productId': widget.productId,
-                    });
+                    Navigator.pushNamed(
+                      context,
+                      '/chat',
+                      arguments: {
+                        'roomId': room.roomId,
+                        'buyerId': room.buyerId,
+                        'branchId': room.branchId,
+                        'productId': widget.productId,
+                      },
+                    );
                   },
                 );
               },
@@ -631,11 +748,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
       builder: (ctx) {
         return Stack(
           children: [
-            Center(
-              child: InteractiveViewer(
-                child: Image.network(url),
-              ),
-            ),
+            Center(child: InteractiveViewer(child: Image.network(url))),
             Positioned(
               top: 40,
               right: 20,
@@ -657,10 +770,14 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     final isBuyer = (_memberCode == Constants.rolePub);
     final title = _detail?.product.title ?? '상품 상세';
-    final representImage = _detail?.imageMetas.firstWhere(
-      (img) => img.represent == '1',
-      orElse: () => ProductImageVo(represent: '1', imageUrl: ''),
-    ).imageUrl ?? '';
+    final representImage =
+        _detail?.imageMetas
+            .firstWhere(
+              (img) => img.represent == '1',
+              orElse: () => ProductImageVo(represent: '1', imageUrl: ''),
+            )
+            .imageUrl ??
+        '';
 
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E2C),
@@ -669,30 +786,45 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               child: CircularProgressIndicator(color: Color(0xFFFF9100)),
             )
           : _detail == null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.white30),
-                      const SizedBox(height: 16),
-                      const Text(
-                        '상품 정보를 불러오지 못했습니다.',
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF9100),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        onPressed: _loadAllData,
-                        child: const Text('다시 시도', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: Colors.white30,
                   ),
-                )
-              : NestedScrollView(
+                  const SizedBox(height: 16),
+                  const Text(
+                    '상품 정보를 불러오지 못했습니다.',
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF9100),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                    onPressed: _loadAllData,
+                    child: const Text(
+                      '다시 시도',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
                   SliverAppBar(
@@ -763,9 +895,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                 ],
               ),
             ),
-      floatingActionButton: _detail != null
-          ? _buildFAB()
-          : null,
+      floatingActionButton: _detail != null ? _buildFAB() : null,
       bottomNavigationBar: _buildBottomDock(),
     );
   }
@@ -777,7 +907,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
     final price = double.tryParse(product.price) ?? 0.0;
     final totalPrice = price * _orderQuantity;
     final isBuyer = (_memberCode == Constants.rolePub);
-    final subImages = _detail!.imageMetas.where((img) => img.represent == '0').take(3).toList();
+    final subImages = _detail!.imageMetas
+        .where((img) => img.represent == '0')
+        .take(3)
+        .toList();
 
     return RefreshIndicator(
       onRefresh: _loadAllData,
@@ -809,7 +942,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
 
             // Options Spinner for Sellers
             if (_memberCode == Constants.roleSell) ...[
-              const Text('상품 판매 상태 변경', style: TextStyle(color: Colors.white54, fontSize: 13)),
+              const Text(
+                '상품 판매 상태 변경',
+                style: TextStyle(color: Colors.white54, fontSize: 13),
+              ),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -825,7 +961,14 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                     onChanged: (newVal) {
                       if (newVal != null && newVal != product.saleStatus) {
-                        final labels = {'0': '대기', '1': '판매중', '10': '승인신청', '20': '승인대기', '30': '반려', '99': '판매완료'};
+                        final labels = {
+                          '0': '대기',
+                          '1': '판매중',
+                          '10': '승인신청',
+                          '20': '승인대기',
+                          '30': '반려',
+                          '99': '판매완료',
+                        };
                         _handleStatusChange(labels[newVal] ?? newVal, newVal);
                       }
                     },
@@ -855,7 +998,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: Colors.white70),
+                        icon: const Icon(
+                          Icons.remove_circle_outline,
+                          color: Colors.white70,
+                        ),
                         onPressed: () {
                           if (_orderQuantity > 1) {
                             setState(() {
@@ -866,10 +1012,17 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                       ),
                       Text(
                         '$_orderQuantity',
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.add_circle_outline, color: Colors.white70),
+                        icon: const Icon(
+                          Icons.add_circle_outline,
+                          color: Colors.white70,
+                        ),
                         onPressed: () {
                           if (_orderQuantity < _maxQuantity) {
                             setState(() {
@@ -906,7 +1059,11 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.local_shipping, color: Color(0xFFFF9100), size: 24),
+                  const Icon(
+                    Icons.local_shipping,
+                    color: Color(0xFFFF9100),
+                    size: 24,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -914,12 +1071,19 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                       children: [
                         Text(
                           '배송비: ${_baseShippingFee.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}원',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '(${_freeThreshold.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}원 이상 구매 시 무료)',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -931,47 +1095,65 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
             // Description HTML Webview / Text
             const Text(
               '상품 설명',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 8),
-            (product.editorMode == '1' || product.editorMode == '2') && _webViewController != null
+            (product.editorMode == '1' || product.editorMode == '2') &&
+                    _webViewController != null
                 ? SizedBox(
                     height: _webViewHeight,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: WebViewWidget(
                         controller: _webViewController!,
-                        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                          Factory<OneSequenceGestureRecognizer>(
-                            () => ScaleGestureRecognizer()
-                              ..onStart = (_) {}
-                              ..onUpdate = (_) {}
-                              ..onEnd = (_) {},
-                          ),
-                        },
+                        gestureRecognizers:
+                            <Factory<OneSequenceGestureRecognizer>>{
+                              Factory<OneSequenceGestureRecognizer>(
+                                () => ScaleGestureRecognizer()
+                                  ..onStart = (_) {}
+                                  ..onUpdate = (_) {}
+                                  ..onEnd = (_) {},
+                              ),
+                            },
                       ),
                     ),
                   )
                 : (product.editorMode == '1' || product.editorMode == '2')
-                    ? _isLoading
-                        ? const SizedBox(
-                            height: 200,
-                            child: Center(
-                              child: CircularProgressIndicator(color: Color(0xFFFF9100)),
+                ? _isLoading
+                      ? const SizedBox(
+                          height: 200,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFFF9100),
                             ),
-                          )
-                        : Text(
-                            product.description.isEmpty 
-                                ? '등록된 상품 설명이 없습니다.' 
-                                : _decodeHtml(product.description).replaceAll(RegExp(r'<[^>]*>'), ''),
-                            style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
-                          )
-                    : Text(
-                        product.description.isEmpty 
-                            ? '등록된 상품 설명이 없습니다.' 
-                            : _decodeHtml(product.description),
-                        style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
-                      ),
+                          ),
+                        )
+                      : Text(
+                          product.description.isEmpty
+                              ? '등록된 상품 설명이 없습니다.'
+                              : _decodeHtml(
+                                  product.description,
+                                ).replaceAll(RegExp(r'<[^>]*>'), ''),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            height: 1.5,
+                          ),
+                        )
+                : Text(
+                    product.description.isEmpty
+                        ? '등록된 상품 설명이 없습니다.'
+                        : _decodeHtml(product.description),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
 
             const SizedBox(height: 20),
 
@@ -979,7 +1161,11 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
             if (subImages.isNotEmpty) ...[
               const Text(
                 '추가 이미지',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
               const SizedBox(height: 10),
               Column(
@@ -996,7 +1182,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(img.imageUrl ?? '', fit: BoxFit.cover),
+                        child: Image.network(
+                          img.imageUrl ?? '',
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   );
@@ -1011,10 +1200,17 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('총 합계 금액', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                  const Text(
+                    '총 합계 금액',
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
                   Text(
                     '${totalPrice.toInt().toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}원',
-                    style: const TextStyle(color: Color(0xFFFF9100), fontSize: 22, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Color(0xFFFF9100),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -1031,7 +1227,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
       color: const Color(0xFFFF9100),
       child: _reviews.isEmpty
           ? const Center(
-              child: Text('작성된 리뷰가 없습니다.', style: TextStyle(color: Colors.white38)),
+              child: Text(
+                '작성된 리뷰가 없습니다.',
+                style: TextStyle(color: Colors.white38),
+              ),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(20),
@@ -1053,29 +1252,55 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(review.writerId, style: const TextStyle(color: Color(0xFFFF9100), fontWeight: FontWeight.bold)),
-                            Text(review.writeDt, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                            Text(
+                              review.writerId,
+                              style: const TextStyle(
+                                color: Color(0xFFFF9100),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              review.writeDt,
+                              style: const TextStyle(
+                                color: Colors.white38,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
                         Row(
                           children: List.generate(5, (starIdx) {
                             return Icon(
-                              starIdx < review.rating ? Icons.star : Icons.star_border,
+                              starIdx < review.rating
+                                  ? Icons.star
+                                  : Icons.star_border,
                               color: Colors.amber,
                               size: 18,
                             );
                           }),
                         ),
                         const SizedBox(height: 8),
-                        Text(review.contents, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                        if (review.filePaths != null && review.filePaths!.isNotEmpty) ...[
+                        Text(
+                          review.contents,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                        if (review.filePaths != null &&
+                            review.filePaths!.isNotEmpty) ...[
                           const SizedBox(height: 10),
                           GestureDetector(
                             onTap: () => _showImageViewer(review.filePaths!),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.network(review.filePaths!, height: 80, width: 80, fit: BoxFit.cover),
+                              child: Image.network(
+                                review.filePaths!,
+                                height: 80,
+                                width: 80,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         ],
@@ -1085,21 +1310,32 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                             children: [
                               TextButton(
                                 onPressed: () {
-                                  Navigator.pushNamed(context, '/reviewWrite', arguments: {
-                                    'productId': int.tryParse(widget.productId) ?? 0,
-                                    'reviewId': review.reviewNo.toString(),
-                                    'contents': review.contents,
-                                    'rating': review.rating,
-                                    'filePaths': review.filePaths,
-                                  }).then((success) {
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/reviewWrite',
+                                    arguments: {
+                                      'productId':
+                                          int.tryParse(widget.productId) ?? 0,
+                                      'reviewId': review.reviewNo.toString(),
+                                      'contents': review.contents,
+                                      'rating': review.rating,
+                                      'filePaths': review.filePaths,
+                                    },
+                                  ).then((success) {
                                     if (success == true) _loadAllData();
                                   });
                                 },
-                                child: const Text('수정', style: TextStyle(color: Colors.white70)),
+                                child: const Text(
+                                  '수정',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
                               ),
                               TextButton(
                                 onPressed: () => _deleteReview(review.reviewNo),
-                                child: const Text('삭제', style: TextStyle(color: Colors.redAccent)),
+                                child: const Text(
+                                  '삭제',
+                                  style: TextStyle(color: Colors.redAccent),
+                                ),
                               ),
                             ],
                           ),
@@ -1120,10 +1356,22 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
         return AlertDialog(
           backgroundColor: const Color(0xFF2E1A47),
           title: const Text('리뷰 삭제', style: TextStyle(color: Colors.white)),
-          content: const Text('작성한 리뷰를 삭제하시겠습니까?', style: TextStyle(color: Colors.white70)),
+          content: const Text(
+            '작성한 리뷰를 삭제하시겠습니까?',
+            style: TextStyle(color: Colors.white70),
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('삭제', style: TextStyle(color: Colors.redAccent))),
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소', style: TextStyle(color: Colors.white54))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(
+                '삭제',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('취소', style: TextStyle(color: Colors.white54)),
+            ),
           ],
         );
       },
@@ -1138,9 +1386,9 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
         await appService.deleteReview(reviewId, _token!);
         _loadAllData();
       } catch (_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('삭제 실패')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('삭제 실패')));
       } finally {
         setState(() {
           _isLoading = false;
@@ -1150,14 +1398,19 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
   }
 
   Widget _buildQnasTab() {
-    final isSellerOrAdmin = (_memberCode == Constants.roleSell || _memberCode == Constants.roleAdmin);
+    final isSellerOrAdmin =
+        (_memberCode == Constants.roleSell ||
+        _memberCode == Constants.roleAdmin);
 
     return RefreshIndicator(
       onRefresh: _loadAllData,
       color: const Color(0xFFFF9100),
       child: _qnas.isEmpty
           ? const Center(
-              child: Text('작성된 문의글이 없습니다.', style: TextStyle(color: Colors.white38)),
+              child: Text(
+                '작성된 문의글이 없습니다.',
+                style: TextStyle(color: Colors.white38),
+              ),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(20),
@@ -1173,7 +1426,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                    ),
+                  ),
                   margin: const EdgeInsets.only(bottom: 12),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -1185,38 +1438,95 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                           children: [
                             Row(
                               children: [
-                                Text(qna.writerId, style: const TextStyle(color: Color(0xFFFF9100), fontWeight: FontWeight.bold)),
+                                Text(
+                                  qna.writerId,
+                                  style: const TextStyle(
+                                    color: Color(0xFFFF9100),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                                 if (isSecret) ...[
                                   const SizedBox(width: 6),
-                                  const Icon(Icons.lock, color: Colors.white38, size: 14),
+                                  const Icon(
+                                    Icons.lock,
+                                    color: Colors.white38,
+                                    size: 14,
+                                  ),
                                 ],
                               ],
                             ),
-                            Text(qna.writeDt, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                            Text(
+                              qna.writeDt,
+                              style: const TextStyle(
+                                color: Colors.white38,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Text(
                           qna.title,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         canRead
-                            ? Text(qna.contents, style: const TextStyle(color: Colors.white70, fontSize: 14))
-                            : const Text('비밀글로 등록된 문의글입니다.', style: TextStyle(color: Colors.white38, fontSize: 14)),
-                        if (qna.answerContents != null && qna.answerContents!.isNotEmpty) ...[
+                            ? Text(
+                                qna.contents,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              )
+                            : const Text(
+                                '비밀글로 등록된 문의글입니다.',
+                                style: TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 14,
+                                ),
+                              ),
+                        if (qna.answerContents != null &&
+                            qna.answerContents!.isNotEmpty) ...[
                           const Divider(color: Colors.white24),
                           Row(
                             children: [
-                              const Text('답변', style: TextStyle(color: Color(0xFFFF9100), fontWeight: FontWeight.bold)),
+                              const Text(
+                                '답변',
+                                style: TextStyle(
+                                  color: Color(0xFFFF9100),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               const SizedBox(width: 8),
-                              Text(qna.answerDt ?? '', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                              Text(
+                                qna.answerDt ?? '',
+                                style: const TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 4),
                           canRead
-                              ? Text(qna.answerContents!, style: const TextStyle(color: Colors.white70, fontSize: 14))
-                              : const Text('답변은 작성자만 볼 수 있습니다.', style: TextStyle(color: Colors.white38, fontSize: 14)),
+                              ? Text(
+                                  qna.answerContents!,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                )
+                              : const Text(
+                                  '답변은 작성자만 볼 수 있습니다.',
+                                  style: TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 14,
+                                  ),
+                                ),
                         ],
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -1224,27 +1534,43 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                             if (isMine) ...[
                               TextButton(
                                 onPressed: () {
-                                  Navigator.pushNamed(context, '/qnaWrite', arguments: {
-                                    'productId': int.tryParse(widget.productId) ?? 0,
-                                    'qnaId': qna.qnaNo.toString(),
-                                    'title': qna.title,
-                                    'contents': qna.contents,
-                                    'secretYn': qna.secretYn,
-                                  }).then((success) {
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/qnaWrite',
+                                    arguments: {
+                                      'productId':
+                                          int.tryParse(widget.productId) ?? 0,
+                                      'qnaId': qna.qnaNo.toString(),
+                                      'title': qna.title,
+                                      'contents': qna.contents,
+                                      'secretYn': qna.secretYn,
+                                    },
+                                  ).then((success) {
                                     if (success == true) _loadAllData();
                                   });
                                 },
-                                child: const Text('수정', style: TextStyle(color: Colors.white70)),
+                                child: const Text(
+                                  '수정',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
                               ),
                               TextButton(
                                 onPressed: () => _deleteQna(qna.qnaNo),
-                                child: const Text('삭제', style: TextStyle(color: Colors.redAccent)),
+                                child: const Text(
+                                  '삭제',
+                                  style: TextStyle(color: Colors.redAccent),
+                                ),
                               ),
                             ],
-                            if (isSellerOrAdmin && (qna.answerContents == null || qna.answerContents!.isEmpty)) ...[
+                            if (isSellerOrAdmin &&
+                                (qna.answerContents == null ||
+                                    qna.answerContents!.isEmpty)) ...[
                               TextButton(
                                 onPressed: () => _showAnswerDialog(qna.qnaNo),
-                                child: const Text('답변 작성', style: TextStyle(color: Color(0xFFFF9100))),
+                                child: const Text(
+                                  '답변 작성',
+                                  style: TextStyle(color: Color(0xFFFF9100)),
+                                ),
                               ),
                             ],
                           ],
@@ -1265,10 +1591,22 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
         return AlertDialog(
           backgroundColor: const Color(0xFF2E1A47),
           title: const Text('문의글 삭제', style: TextStyle(color: Colors.white)),
-          content: const Text('작성한 문의글을 삭제하시겠습니까?', style: TextStyle(color: Colors.white70)),
+          content: const Text(
+            '작성한 문의글을 삭제하시겠습니까?',
+            style: TextStyle(color: Colors.white70),
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('삭제', style: TextStyle(color: Colors.redAccent))),
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소', style: TextStyle(color: Colors.white54))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(
+                '삭제',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('취소', style: TextStyle(color: Colors.white54)),
+            ),
           ],
         );
       },
@@ -1283,9 +1621,9 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
         await appService.deleteQna(qnaId, _token!);
         _loadAllData();
       } catch (_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('삭제 실패')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('삭제 실패')));
       } finally {
         setState(() {
           _isLoading = false;
@@ -1320,9 +1658,15 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                 Navigator.pop(ctx);
                 await _submitAnswer(qnaId, text);
               },
-              child: const Text('등록', style: TextStyle(color: Color(0xFFFF9100))),
+              child: const Text(
+                '등록',
+                style: TextStyle(color: Color(0xFFFF9100)),
+              ),
             ),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소', style: TextStyle(color: Colors.white54))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('취소', style: TextStyle(color: Colors.white54)),
+            ),
           ],
         );
       },
@@ -1336,12 +1680,16 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
     });
     try {
       final appService = RepositoryProvider.of<AppService>(context);
-      await appService.answerQna(qnaId: qnaId, answerContents: text, token: _token!);
+      await appService.answerQna(
+        qnaId: qnaId,
+        answerContents: text,
+        token: _token!,
+      );
       _loadAllData();
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('답변 등록 실패')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('답변 등록 실패')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -1361,11 +1709,12 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => _tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: const Color(0xFF2E1A47),
-      child: _tabBar,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: const Color(0xFF2E1A47), child: _tabBar);
   }
 
   @override

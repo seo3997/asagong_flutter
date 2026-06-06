@@ -65,6 +65,12 @@ class MyApp extends StatelessWidget {
               primary: const Color(0xFFFF9100),
             ),
             useMaterial3: true,
+            pageTransitionsTheme: const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+              },
+            ),
           ),
           initialRoute: '/',
           routes: {

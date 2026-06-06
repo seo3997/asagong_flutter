@@ -6,6 +6,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/service/app_service.dart';
 import '../../data/models/order_models.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 class PaymentWebViewScreen extends StatefulWidget {
   final Map<String, dynamic> arguments;
@@ -37,7 +38,9 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     _orderId = widget.arguments['orderId'] as String? ?? '';
     _orderNo = widget.arguments['orderNo'] as String? ?? '';
     _amount = widget.arguments['amount'] as int? ?? 0;
-    _productName = widget.arguments['productName'] as String? ?? '상품 결제';
+    
+    final rawName = widget.arguments['productName'] as String? ?? '';
+    _productName = rawName.trim().isEmpty ? '상품 결제' : rawName;
 
     _loadClientKeyAndInitialize();
   }
@@ -108,13 +111,27 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
 
               // Deep link external apps (Card apps, Shinhan Pay, KB Pay, etc.)
               if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                setState(() {
+                  _isLoading = true;
+                });
                 _launchExternalApp(url);
                 return NavigationDecision.prevent;
               }
 
               return NavigationDecision.navigate;
             },
+            onWebResourceError: (error) {
+              final failingUrl = error.url ?? '';
+              if (failingUrl.isNotEmpty && !failingUrl.startsWith('http://') && !failingUrl.startsWith('https://')) {
+                setState(() {
+                  _isLoading = true;
+                });
+                _launchExternalApp(failingUrl);
+              }
+            },
             onPageFinished: (_) {
+              // Note: Do not force _isLoading to false here if we are redirecting to card apps,
+              // but standard page finishes should resolve loading.
               setState(() {
                 _isLoading = false;
               });
@@ -122,6 +139,13 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
           ),
         )
         ..loadHtmlString(htmlContent, baseUrl: 'https://tosspayments.com');
+
+      final platform = _controller.platform;
+      if (platform is AndroidWebViewController) {
+        await AndroidWebViewCookieManager(
+          const PlatformWebViewCookieManagerCreationParams(),
+        ).setAcceptThirdPartyCookies(platform, true);
+      }
     } catch (_) {
       setState(() {
         _isLoading = false;
@@ -148,37 +172,83 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     }
   }
 
-  Future<void> _launchExternalApp(String url) async {
+  Map<String, String>? _parseIntentUrl(String url) {
     try {
-      final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        // Try fallback scheme or store
-        if (url.startsWith('intent://')) {
-          final parsed = _parseAndroidIntent(url);
-          if (parsed != null) {
-            final marketUri = Uri.parse('market://details?id=$parsed');
-            if (await canLaunchUrl(marketUri)) {
-              await launchUrl(marketUri, mode: LaunchMode.externalApplication);
-            }
-          }
+      if (!url.startsWith('intent://')) return null;
+      final intentIndex = url.indexOf('#Intent;');
+      if (intentIndex == -1) return null;
+      
+      final uriPath = url.substring(9, intentIndex);
+      final paramsStr = url.substring(intentIndex + 8);
+      final params = paramsStr.split(';');
+      
+      String scheme = '';
+      String package = '';
+      for (var param in params) {
+        if (param.startsWith('scheme=')) {
+          scheme = param.substring(7);
+        } else if (param.startsWith('package=')) {
+          package = param.substring(8);
         }
       }
+      
+      return {
+        'schemeUrl': scheme.isNotEmpty ? '$scheme://$uriPath' : '',
+        'package': package,
+      };
     } catch (_) {
-      // Ignore
+      return null;
     }
   }
 
-  String? _parseAndroidIntent(String url) {
+  Future<void> _launchExternalApp(String url) async {
     try {
-      final idx = url.indexOf('package=');
-      if (idx != -1) {
-        final endIdx = url.indexOf(';', idx);
-        return url.substring(idx + 8, endIdx != -1 ? endIdx : url.length);
+      // 1. intent:// scheme parsing
+      if (url.startsWith('intent://')) {
+        final parsed = _parseIntentUrl(url);
+        if (parsed != null) {
+          final schemeUrl = parsed['schemeUrl'] ?? '';
+          final package = parsed['package'] ?? '';
+          
+          if (schemeUrl.isNotEmpty) {
+            try {
+              // Direct launch attempt without canLaunchUrl check
+              final success = await launchUrl(Uri.parse(schemeUrl), mode: LaunchMode.externalApplication);
+              if (success) return;
+            } catch (_) {}
+          }
+          
+          // Fallback to Google Play market if direct launch fails or scheme is empty
+          if (package.isNotEmpty) {
+            try {
+              final marketUri = Uri.parse('market://details?id=$package');
+              await launchUrl(marketUri, mode: LaunchMode.externalApplication);
+              return;
+            } catch (_) {}
+          }
+        }
+        return;
       }
-    } catch (_) {}
-    return null;
+      
+      // 2. Direct launch for normal custom schemes (kakaotalk://, wooripay://, etc.)
+      final uri = Uri.parse(uriStringDecode(url));
+      try {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        // Optional: If direct custom scheme fails, try parsing fallback market or ignore
+      }
+    } catch (e) {
+      debugPrint("Failed to launch external app: $e");
+    }
+  }
+
+  // Decodes url encoded character safety helper
+  String uriStringDecode(String url) {
+    try {
+      return Uri.decodeFull(url);
+    } catch (_) {
+      return url;
+    }
   }
 
   Future<void> _confirmPayment(String paymentKey, String paymentOrderId, int amount) async {

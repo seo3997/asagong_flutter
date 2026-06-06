@@ -107,6 +107,11 @@ class AppRepository {
     return apiService.cancelPayment(request);
   }
 
+  Future<bool> requestReturn(String token, Map<String, dynamic> req) {
+    return apiService.requestReturn(token, req);
+  }
+
+
   Future<SimpleResultResponse> updateUser(String token, OpUserVo user) {
     return apiService.updateUser(token, user);
   }
@@ -122,6 +127,19 @@ class AppRepository {
   Future<List<AdItem>> getBuyAdvertiseList(AdListRequest req) {
     return apiService.getBuyAdvertiseList(req);
   }
+
+  Future<List<AdItem>> getInterestItems(String token, int pageNo) {
+    return apiService.getInterestItems(token, pageNo);
+  }
+
+  Future<List<AdItem>> getPurchaseItems(String token, int pageNo) {
+    return apiService.getPurchaseItems(token, pageNo);
+  }
+
+  Future<List<AdItem>> getOrderHistory(String token, int buyerNo, int page, int size) {
+    return apiService.getOrderHistory(token, buyerNo, page, size);
+  }
+
 
   Future<bool> toggleInterest(int userNo, int productId) {
     return apiService.toggleInterest(userNo, productId);

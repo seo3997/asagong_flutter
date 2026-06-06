@@ -168,6 +168,15 @@ class AppService {
     }
   }
 
+  Future<bool> requestReturn(String token, Map<String, dynamic> req) async {
+    try {
+      return await repository.requestReturn(token, req);
+    } catch (_) {
+      return false;
+    }
+  }
+
+
   Future<SimpleResultResponse?> updateUser(String token, OpUserVo user) async {
     try {
       return await repository.updateUser(token, user);
@@ -199,6 +208,31 @@ class AppService {
       return [];
     }
   }
+
+  Future<List<AdItem>> getInterestItems(String token, int pageNo) async {
+    try {
+      return await repository.getInterestItems(token, pageNo);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<List<AdItem>> getPurchaseItems(String token, int pageNo) async {
+    try {
+      return await repository.getPurchaseItems(token, pageNo);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<List<AdItem>> getOrderHistory(String token, int buyerNo, int page, int size) async {
+    try {
+      return await repository.getOrderHistory(token, buyerNo, page, size);
+    } catch (_) {
+      return [];
+    }
+  }
+
 
   Future<bool> toggleInterest(int userNo, int productId) async {
     try {
