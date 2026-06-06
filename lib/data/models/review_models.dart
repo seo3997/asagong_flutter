@@ -18,14 +18,32 @@ class ReviewItem {
   });
 
   factory ReviewItem.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is num) return value.toInt();
+      if (value is String) {
+        return double.tryParse(value)?.toInt() ?? int.tryParse(value) ?? 0;
+      }
+      return 0;
+    }
+
+    double parseDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is num) return value.toDouble();
+      if (value is String) {
+        return double.tryParse(value) ?? 0.0;
+      }
+      return 0.0;
+    }
+
     return ReviewItem(
-      reviewNo: (json['REVIEW_ID'] as num? ?? json['reviewNo'] as num? ?? 0).toInt(),
-      rating: (json['RATING'] as num? ?? json['rating'] as num? ?? 0.0).toDouble(),
+      reviewNo: parseInt(json['REVIEW_ID'] ?? json['reviewNo']),
+      rating: parseDouble(json['RATING'] ?? json['rating']),
       contents: (json['CONTENTS'] ?? json['contents'] ?? '').toString(),
       filePaths: (json['FILE_PATHS'] ?? json['imageUrl'])?.toString(),
-      writerId: (json['WRITER_ID'] ?? json['writerId'] ?? '').toString(),
-      writeDt: (json['WRITE_DT'] ?? json['writeDt'] ?? '').toString(),
-      writerNo: (json['WRITER_NO'] as num? ?? json['writerNo'] as num? ?? 0).toInt(),
+      writerId: (json['USER_NM'] ?? json['userNm'] ?? json['WRITER_ID'] ?? json['writerId'] ?? '').toString(),
+      writeDt: (json['REGIST_DT'] ?? json['createDt'] ?? json['WRITE_DT'] ?? json['writeDt'] ?? '').toString(),
+      writerNo: parseInt(json['USER_NO'] ?? json['userNo'] ?? json['userId'] ?? json['WRITER_NO'] ?? json['writerNo']),
     );
   }
 

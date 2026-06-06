@@ -22,16 +22,25 @@ class QnaItem {
   });
 
   factory QnaItem.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is num) return value.toInt();
+      if (value is String) {
+        return double.tryParse(value)?.toInt() ?? int.tryParse(value) ?? 0;
+      }
+      return 0;
+    }
+
     return QnaItem(
-      qnaNo: (json['QNA_ID'] as num? ?? json['qnaNo'] as num? ?? 0).toInt(),
+      qnaNo: parseInt(json['QNA_ID'] ?? json['qnaNo']),
       title: (json['TITLE'] ?? json['title'] ?? '').toString(),
       contents: (json['CONTENTS'] ?? json['contents'] ?? '').toString(),
       secretYn: (json['SECRET_YN'] ?? json['secretYn'] ?? 'N').toString(),
-      writerId: (json['WRITER_ID'] ?? json['writerId'] ?? '').toString(),
-      writeDt: (json['WRITE_DT'] ?? json['writeDt'] ?? '').toString(),
-      writerNo: (json['WRITER_NO'] as num? ?? json['writerNo'] as num? ?? 0).toInt(),
+      writerId: (json['USER_NM'] ?? json['userNm'] ?? json['WRITER_ID'] ?? json['writerId'] ?? '').toString(),
+      writeDt: (json['REGIST_DT'] ?? json['createDt'] ?? json['WRITE_DT'] ?? json['writeDt'] ?? '').toString(),
+      writerNo: parseInt(json['USER_NO'] ?? json['userNo'] ?? json['userId'] ?? json['WRITER_NO'] ?? json['writerNo']),
       answerContents: (json['ANSWER_CONTENTS'] ?? json['answerContents'])?.toString(),
-      answerDt: (json['ANSWER_DT'] ?? json['answerDt'])?.toString(),
+      answerDt: (json['ANSWERED_AT'] ?? json['answerDt'] ?? json['ANSWER_DT'])?.toString(),
     );
   }
 

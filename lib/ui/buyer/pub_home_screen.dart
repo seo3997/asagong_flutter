@@ -648,37 +648,75 @@ class _BuyerProductListState extends State<BuyerProductList> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            alignment: WrapAlignment.start,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               // Sale only checkbox
-              Checkbox(
-                value: _saleOnly,
-                activeColor: const Color(0xFFFF9100),
-                onChanged: (val) {
+              InkWell(
+                onTap: () {
                   setState(() {
-                    _saleOnly = val ?? true;
+                    _saleOnly = !_saleOnly;
                   });
                   _fetchProducts(isRefresh: true);
                 },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: _saleOnly,
+                        activeColor: const Color(0xFFFF9100),
+                        onChanged: (val) {
+                          setState(() {
+                            _saleOnly = val ?? true;
+                          });
+                          _fetchProducts(isRefresh: true);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '판매중인 상품만',
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
               ),
-              const Text(
-                '판매중인 상품만',
-                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(width: 16),
               // Price filter checkbox
-              Checkbox(
-                value: _enablePriceFilter,
-                activeColor: const Color(0xFFFF9100),
-                onChanged: (val) {
+              InkWell(
+                onTap: () {
                   setState(() {
-                    _enablePriceFilter = val ?? false;
+                    _enablePriceFilter = !_enablePriceFilter;
                   });
                 },
-              ),
-              const Text(
-                '희망 단가로 조회',
-                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: _enablePriceFilter,
+                        activeColor: const Color(0xFFFF9100),
+                        onChanged: (val) {
+                          setState(() {
+                            _enablePriceFilter = val ?? false;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '희망 단가로 조회',
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

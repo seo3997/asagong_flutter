@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -44,7 +46,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
   int _maxQuantity = 1;
   int _baseShippingFee = 3000;
   int _freeThreshold = 50000;
-  double _webViewHeight = 350;
+  double _webViewHeight = 500;
 
   WebViewController? _webViewController;
 
@@ -59,37 +61,26 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
   }
 
   Future<void> _updateWebViewHeight() async {
-    if (_webViewController == null) return;
-    try {
-      var heightStr = (await _webViewController!.runJavaScriptReturningResult(
-        "document.documentElement.scrollHeight || document.body.scrollHeight"
-      )).toString();
-      if (heightStr.startsWith('"') && heightStr.endsWith('"')) {
-        heightStr = heightStr.substring(1, heightStr.length - 1);
-      }
-      final height = double.tryParse(heightStr) ?? 350.0;
-      if (mounted) {
-        setState(() {
-          _webViewHeight = height < 350.0 ? 350.0 : height;
-        });
-      }
-    } catch (_) {}
+    // 옵션 2: 동적 높이 계산 비활성화
+    return;
   }
 
   Widget? _buildFAB() {
     final isBuyer = (_memberCode == Constants.rolePub);
     switch (_tabController.index) {
       case 0:
-        return FloatingActionButton(
+        if (isBuyer) return null;
+        return FloatingActionButton.extended(
           backgroundColor: const Color(0xFFFF9100),
+          icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+          label: const Text('채팅하기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           onPressed: _handleFabClick,
-          child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
         );
       case 1:
         if (!isBuyer) return null;
         return FloatingActionButton.extended(
           backgroundColor: const Color(0xFFFF9100),
-          label: const Text('리뷰 작성', style: TextStyle(color: Colors.white)),
+          label: const Text('리뷰 등록', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           icon: const Icon(Icons.edit, color: Colors.white),
           onPressed: () {
             Navigator.pushNamed(context, '/reviewWrite', arguments: {
@@ -103,7 +94,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
         if (!isBuyer) return null;
         return FloatingActionButton.extended(
           backgroundColor: const Color(0xFFFF9100),
-          label: const Text('문의 작성', style: TextStyle(color: Colors.white)),
+          label: const Text('문의 등록', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           icon: const Icon(Icons.help_outline, color: Colors.white),
           onPressed: () {
             Navigator.pushNamed(context, '/qnaWrite', arguments: {
@@ -116,6 +107,75 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
       default:
         return null;
     }
+  }
+
+  Widget? _buildBottomDock() {
+    if (_detail == null) return null;
+    final isBuyer = (_memberCode == Constants.rolePub);
+    if (!isBuyer) return null;
+
+    final product = _detail!.product;
+    final price = double.tryParse(product.price) ?? 0.0;
+    final totalPrice = price * _orderQuantity;
+
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2E1A47),
+          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.08))),
+        ),
+        child: Row(
+          children: [
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white.withOpacity(0.08),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                side: BorderSide(color: Colors.white.withOpacity(0.12)),
+              ),
+              onPressed: _handleFabClick,
+              icon: const Icon(Icons.chat_bubble_outline, size: 18),
+              label: const Text('채팅하기', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF9100),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: product.saleStatus == '1'
+                    ? () {
+                        final representImg = _detail?.imageMetas.firstWhere(
+                          (img) => img.represent == '1',
+                          orElse: () => ProductImageVo(represent: '1', imageUrl: ''),
+                        ).imageUrl ?? '';
+
+                        Navigator.pushNamed(context, '/order', arguments: {
+                          'productId': int.tryParse(product.productId ?? '') ?? 0,
+                          'productName': product.title,
+                          'unitPrice': (double.tryParse(product.price) ?? 0.0).toInt(),
+                          'selectedOption': product.unitCodeNm,
+                          'quantity': _orderQuantity,
+                          'productImage': representImg,
+                          'branchId': product.branchId,
+                        });
+                      }
+                    : null,
+                child: Text(
+                  product.saleStatus == '1' ? '구매하기' : '판매 완료',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -190,6 +250,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                         background-color: #1E1E2C;
                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                     }
+                    body, p, span, div, table, tr, td, th {
+                        background-color: #1E1E2C !important;
+                        color: #E2E8F0 !important;
+                    }
                     /* Remove fixed widths from inline styles */
                     [style*="width"] { max-width: 100% !important; }
                 </style>
@@ -201,15 +265,6 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
             ..setJavaScriptMode(JavaScriptMode.unrestricted)
             ..enableZoom(true)
             ..setBackgroundColor(const Color(0xFF1E1E2C))
-            ..setNavigationDelegate(
-              NavigationDelegate(
-                onPageFinished: (url) async {
-                  await _updateWebViewHeight();
-                  await Future.delayed(const Duration(milliseconds: 500));
-                  await _updateWebViewHeight();
-                },
-              ),
-            )
             ..loadHtmlString(htmlContent);
         }
       }
@@ -681,6 +736,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
       floatingActionButton: _detail != null
           ? _buildFAB()
           : null,
+      bottomNavigationBar: _buildBottomDock(),
     );
   }
 
@@ -848,20 +904,41 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),
-            product.editorMode == '1' || product.editorMode == '2'
+            (product.editorMode == '1' || product.editorMode == '2') && _webViewController != null
                 ? SizedBox(
                     height: _webViewHeight,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: WebViewWidget(controller: _webViewController!),
+                      child: WebViewWidget(
+                        controller: _webViewController!,
+                        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                          Factory<OneSequenceGestureRecognizer>(
+                            () => EagerGestureRecognizer(),
+                          ),
+                        },
+                      ),
                     ),
                   )
-                : Text(
-                    product.description.isEmpty 
-                        ? '등록된 상품 설명이 없습니다.' 
-                        : _decodeHtml(product.description),
-                    style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
-                  ),
+                : (product.editorMode == '1' || product.editorMode == '2')
+                    ? _isLoading
+                        ? const SizedBox(
+                            height: 200,
+                            child: Center(
+                              child: CircularProgressIndicator(color: Color(0xFFFF9100)),
+                            ),
+                          )
+                        : Text(
+                            product.description.isEmpty 
+                                ? '등록된 상품 설명이 없습니다.' 
+                                : _decodeHtml(product.description).replaceAll(RegExp(r'<[^>]*>'), ''),
+                            style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                          )
+                    : Text(
+                        product.description.isEmpty 
+                            ? '등록된 상품 설명이 없습니다.' 
+                            : _decodeHtml(product.description),
+                        style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                      ),
 
             const SizedBox(height: 20),
 
@@ -895,7 +972,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               const SizedBox(height: 12),
             ],
 
-            // Total amount & Checkout Button
+            // Total amount
             if (isBuyer) ...[
               const Divider(color: Colors.white24, height: 24),
               Row(
@@ -907,36 +984,6 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
                     style: const TextStyle(color: Color(0xFFFF9100), fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                 ],
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF9100),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: product.saleStatus == '1'
-                    ? () {
-                        final representImg = _detail?.imageMetas.firstWhere(
-                          (img) => img.represent == '1',
-                          orElse: () => ProductImageVo(represent: '1', imageUrl: ''),
-                        ).imageUrl ?? '';
-
-                        Navigator.pushNamed(context, '/order', arguments: {
-                          'productId': int.tryParse(product.productId ?? '') ?? 0,
-                          'productName': product.title,
-                          'unitPrice': (double.tryParse(product.price) ?? 0.0).toInt(),
-                          'selectedOption': product.unitCodeNm,
-                          'quantity': _orderQuantity,
-                          'productImage': representImg,
-                          'branchId': product.branchId,
-                        });
-                      }
-                    : null,
-                child: Text(
-                  product.saleStatus == '1' ? '구매하기' : '판매 중이 아닙니다',
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
               ),
             ],
           ],
