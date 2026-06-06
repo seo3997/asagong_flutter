@@ -227,9 +227,15 @@ class _AppDrawerState extends State<AppDrawer> {
           ),
         ),
         onTap: () {
-          Navigator.pop(context); // Close Drawer
           if (!isSelected) {
-            Navigator.pushReplacementNamed(context, route);
+            Navigator.pop(context); // Close Drawer
+            Future.delayed(const Duration(milliseconds: 250), () {
+              if (mounted) {
+                Navigator.pushReplacementNamed(context, route);
+              }
+            });
+          } else {
+            Navigator.pop(context); // Close Drawer if already selected
           }
         },
       ),
@@ -265,14 +271,18 @@ class _AppDrawerState extends State<AppDrawer> {
           if (title == '공지사항' || title == '문의하기') {
             fullUrl = '$fullUrl&ss_user_no=$_loginIdx';
           }
-          Navigator.pushNamed(
-            context,
-            '/webview',
-            arguments: {
-              'title': title,
-              'url': fullUrl,
-            },
-          );
+          Future.delayed(const Duration(milliseconds: 250), () {
+            if (mounted) {
+              Navigator.pushNamed(
+                context,
+                '/webview',
+                arguments: {
+                  'title': title,
+                  'url': fullUrl,
+                },
+              );
+            }
+          });
         },
       ),
     );

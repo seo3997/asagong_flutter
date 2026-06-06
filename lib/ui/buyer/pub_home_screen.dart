@@ -193,13 +193,11 @@ class _PubHomeScreenState extends State<PubHomeScreen> {
         userNo: _userNo,
         onTap: (item) {
           final rawId = item.orderId;
-          final oid = rawId != null ? double.tryParse(rawId)?.toInt().toString() : null;
+          final oid = rawId != null
+              ? double.tryParse(rawId)?.toInt().toString()
+              : null;
           if (oid != null && oid.isNotEmpty) {
-            Navigator.pushNamed(
-              context,
-              '/orderMgtDetail',
-              arguments: oid,
-            );
+            Navigator.pushNamed(context, '/orderMgtDetail', arguments: oid);
           }
         },
         formatPrice: _formatPrice,
@@ -1263,7 +1261,12 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
 
     try {
       final appService = RepositoryProvider.of<AppService>(context);
-      final newItems = await appService.getOrderHistory(widget.token, widget.userNo, _pageNo, 20);
+      final newItems = await appService.getOrderHistory(
+        widget.token,
+        widget.userNo,
+        _pageNo,
+        20,
+      );
 
       if (mounted) {
         setState(() {
@@ -1337,12 +1340,15 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
   }
 
   bool _shouldShowReturnButton(AdItem item) {
-    if (item.paymentStatus != '70' || item.deliveredAt == null || item.deliveredAt!.isEmpty) {
+    if (item.paymentStatus != '70' ||
+        item.deliveredAt == null ||
+        item.deliveredAt!.isEmpty) {
       return false;
     }
     try {
       final cleanDate = item.deliveredAt!.replaceAll('T', ' ');
-      DateTime? deliveredDate = DateTime.tryParse(cleanDate) ?? DateTime.tryParse(item.deliveredAt!);
+      DateTime? deliveredDate =
+          DateTime.tryParse(cleanDate) ?? DateTime.tryParse(item.deliveredAt!);
       if (deliveredDate != null) {
         final limit = DateTime.now().subtract(const Duration(days: 7));
         return deliveredDate.isAfter(limit);
@@ -1353,7 +1359,9 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
 
   Future<void> _cancelOrder(AdItem item) async {
     final rawId = item.orderId;
-    final oid = rawId != null ? double.tryParse(rawId)?.toInt().toString() : null;
+    final oid = rawId != null
+        ? double.tryParse(rawId)?.toInt().toString()
+        : null;
     if (oid == null || oid.isEmpty) return;
 
     if (item.orderedAt != null && item.orderedAt!.isNotEmpty) {
@@ -1364,7 +1372,9 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
           final diff = DateTime.now().difference(orderDate);
           if (diff.inDays > 7) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('결제 후 7일이 경과하여 직접 취소가 불가능합니다. 고객센터로 문의해주세요.')),
+              const SnackBar(
+                content: Text('결제 후 7일이 경과하여 직접 취소가 불가능합니다. 고객센터로 문의해주세요.'),
+              ),
             );
             return;
           }
@@ -1378,8 +1388,14 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
         title: const Text('주문 취소'),
         content: const Text('정말로 주문을 취소하시겠습니까?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('확인')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('확인'),
+          ),
         ],
       ),
     );
@@ -1396,23 +1412,23 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
         OrderCancelRequest(
           orderId: oid,
           cancelReason: '고객 변심',
-          userNo: _userNo,
+          userNo: widget.userNo,
         ),
       );
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('주문이 취소되었습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('주문이 취소되었습니다.')));
         _fetchProducts(isRefresh: true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('취소 실패')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('취소 실패')));
       }
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('오류 발생')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('오류 발생')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -1422,7 +1438,9 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
 
   Future<void> _returnOrder(AdItem item) async {
     final rawId = item.orderId;
-    final oid = rawId != null ? double.tryParse(rawId)?.toInt().toString() : null;
+    final oid = rawId != null
+        ? double.tryParse(rawId)?.toInt().toString()
+        : null;
     if (oid == null || oid.isEmpty) return;
 
     final confirmed = await showDialog<bool>(
@@ -1431,8 +1449,14 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
         title: const Text('반품 요청'),
         content: const Text('반품을 요청하시겠습니까? (배송비가 발생할 수 있습니다.)'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('확인')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('확인'),
+          ),
         ],
       ),
     );
@@ -1445,28 +1469,25 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
 
     try {
       final appService = RepositoryProvider.of<AppService>(context);
-      final success = await appService.requestReturn(
-        _token,
-        {
-          'orderId': oid,
-          'returnReason': '단순 변심',
-          'userNo': _userNo,
-        },
-      );
+      final success = await appService.requestReturn(widget.token, {
+        'orderId': oid,
+        'returnReason': '단순 변심',
+        'userNo': widget.userNo,
+      });
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('반품 요청이 접수되었습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('반품 요청이 접수되었습니다.')));
         _fetchProducts(isRefresh: true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('반품 요청 실패')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('반품 요청 실패')));
       }
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('오류 발생')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('오류 발생')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -1528,7 +1549,8 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
 
   Widget _buildProductCard(AdItem item) {
     final hasOrderNo = item.orderNo != null && item.orderNo!.isNotEmpty;
-    final statusText = item.orderStatusNm ?? _getOrderStatusText(item.paymentStatus);
+    final statusText =
+        item.orderStatusNm ?? _getOrderStatusText(item.paymentStatus);
     final isCancelActive = item.paymentStatus == '50';
     final isReturnActive = _shouldShowReturnButton(item);
     final showDeliveryInfo = item.paymentStatus == '60';
@@ -1538,7 +1560,9 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
 
     final isCancelState = item.paymentStatus == '40';
     final badgeColor = isCancelState ? Colors.white60 : const Color(0xFF1976D2);
-    final badgeBg = isCancelState ? Colors.white.withOpacity(0.12) : const Color(0xFF1976D2).withOpacity(0.12);
+    final badgeBg = isCancelState
+        ? Colors.white.withOpacity(0.12)
+        : const Color(0xFF1976D2).withOpacity(0.12);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -1621,7 +1645,10 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
                           children: [
                             if (statusText.isNotEmpty)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   color: badgeBg,
                                   borderRadius: BorderRadius.circular(4),
@@ -1643,13 +1670,20 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
                                   onPressed: () => _cancelOrder(item),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: const Color(0xFFEF4444),
-                                    side: const BorderSide(color: Color(0xFFEF4444)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    side: const BorderSide(
+                                      color: Color(0xFFEF4444),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  child: const Text('주문취소', style: TextStyle(fontSize: 11)),
+                                  child: const Text(
+                                    '주문취소',
+                                    style: TextStyle(fontSize: 11),
+                                  ),
                                 ),
                               ),
                             if (isReturnActive)
@@ -1659,13 +1693,20 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
                                   onPressed: () => _returnOrder(item),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: Colors.white70,
-                                    side: const BorderSide(color: Colors.white38),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    side: const BorderSide(
+                                      color: Colors.white38,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  child: const Text('반품요청', style: TextStyle(fontSize: 11)),
+                                  child: const Text(
+                                    '반품요청',
+                                    style: TextStyle(fontSize: 11),
+                                  ),
                                 ),
                               ),
                           ],
@@ -1679,10 +1720,7 @@ class _BuyerPurchaseProductListState extends State<BuyerPurchaseProductList> {
                 const SizedBox(height: 8),
                 Text(
                   deliveryInfoText,
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
               ],
             ],

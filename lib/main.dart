@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'domain/service/app_service.dart';
@@ -25,7 +26,7 @@ import 'package:flutter/services.dart';
 void main() async {
   // Ensure widget binding is initialized before calling SystemChrome
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set orientation to portrait mode only
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -88,7 +89,9 @@ class MyApp extends StatelessWidget {
             switch (settings.name) {
               case '/adDetail':
                 final pid = args as String;
-                return MaterialPageRoute(builder: (context) => AdDetailScreen(productId: pid));
+                return MaterialPageRoute(
+                  builder: (context) => AdDetailScreen(productId: pid),
+                );
               case '/reviewWrite':
                 final map = args as Map<String, dynamic>;
                 return MaterialPageRoute(
@@ -113,18 +116,28 @@ class MyApp extends StatelessWidget {
                 );
               case '/order':
                 final map = args as Map<String, dynamic>;
-                return MaterialPageRoute(builder: (context) => OrderScreen(arguments: map));
+                return MaterialPageRoute(
+                  builder: (context) => OrderScreen(arguments: map),
+                );
               case '/paymentWebview':
                 final map = args as Map<String, dynamic>;
-                return MaterialPageRoute(builder: (context) => PaymentWebViewScreen(arguments: map));
+                return MaterialPageRoute(
+                  builder: (context) => PaymentWebViewScreen(arguments: map),
+                );
               case '/orderSuccess':
                 final map = args as Map<String, dynamic>;
-                return MaterialPageRoute(builder: (context) => OrderSuccessScreen(arguments: map));
+                return MaterialPageRoute(
+                  builder: (context) => OrderSuccessScreen(arguments: map),
+                );
               case '/chat':
                 final map = args as Map<String, dynamic>;
-                return MaterialPageRoute(builder: (context) => ChatScreen(arguments: map));
+                return MaterialPageRoute(
+                  builder: (context) => ChatScreen(arguments: map),
+                );
               case '/addressSearch':
-                return MaterialPageRoute(builder: (context) => const AddressSearchScreen());
+                return MaterialPageRoute(
+                  builder: (context) => const AddressSearchScreen(),
+                );
               default:
                 return null;
             }
