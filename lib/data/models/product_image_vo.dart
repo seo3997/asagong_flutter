@@ -36,19 +36,19 @@ class ProductImageVo {
 
   factory ProductImageVo.fromJson(Map<String, dynamic> json) {
     return ProductImageVo(
-      imageId: json['imageId'] as String?,
-      productId: json['productId'] as String?,
-      imageCd: json['imageCd'] as String?,
-      imageUrl: json['imageUrl'] as String?,
-      imageName: json['imageName'] as String?,
-      represent: json['represent'] as String? ?? '0',
-      imageSize: json['imageSize'] as int?,
-      imageText: json['imageText'] as String?,
-      imageType: json['imageType'] as String?,
-      registerNo: json['registerNo'] as String? ?? '',
-      registDt: json['registDt'] as String?,
-      updusrNo: json['updusrNo'] as String? ?? '',
-      updtDt: json['updtDt'] as String?,
+      imageId: json['imageId']?.toString(),
+      productId: json['productId']?.toString(),
+      imageCd: json['imageCd']?.toString(),
+      imageUrl: json['imageUrl']?.toString(),
+      imageName: json['imageName']?.toString(),
+      represent: json['represent']?.toString() ?? '0',
+      imageSize: json['imageSize'] != null ? (json['imageSize'] as num).toInt() : null,
+      imageText: json['imageText']?.toString(),
+      imageType: json['imageType']?.toString(),
+      registerNo: json['registerNo']?.toString() ?? '',
+      registDt: json['registDt']?.toString(),
+      updusrNo: json['updusrNo']?.toString() ?? '',
+      updtDt: json['updtDt']?.toString(),
     );
   }
 

@@ -42,13 +42,91 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
 
   int _orderQuantity = 1;
   int _maxQuantity = 1;
+  int _baseShippingFee = 3000;
+  int _freeThreshold = 50000;
+  double _webViewHeight = 350;
 
   WebViewController? _webViewController;
+
+  String _decodeHtml(String html) {
+    return html
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&apos;', "'")
+        .replaceAll('&#39;', "'");
+  }
+
+  Future<void> _updateWebViewHeight() async {
+    if (_webViewController == null) return;
+    try {
+      var heightStr = (await _webViewController!.runJavaScriptReturningResult(
+        "document.documentElement.scrollHeight || document.body.scrollHeight"
+      )).toString();
+      if (heightStr.startsWith('"') && heightStr.endsWith('"')) {
+        heightStr = heightStr.substring(1, heightStr.length - 1);
+      }
+      final height = double.tryParse(heightStr) ?? 350.0;
+      if (mounted) {
+        setState(() {
+          _webViewHeight = height < 350.0 ? 350.0 : height;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Widget? _buildFAB() {
+    final isBuyer = (_memberCode == Constants.rolePub);
+    switch (_tabController.index) {
+      case 0:
+        return FloatingActionButton(
+          backgroundColor: const Color(0xFFFF9100),
+          onPressed: _handleFabClick,
+          child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+        );
+      case 1:
+        if (!isBuyer) return null;
+        return FloatingActionButton.extended(
+          backgroundColor: const Color(0xFFFF9100),
+          label: const Text('리뷰 작성', style: TextStyle(color: Colors.white)),
+          icon: const Icon(Icons.edit, color: Colors.white),
+          onPressed: () {
+            Navigator.pushNamed(context, '/reviewWrite', arguments: {
+              'productId': int.tryParse(widget.productId) ?? 0,
+            }).then((success) {
+              if (success == true) _loadAllData();
+            });
+          },
+        );
+      case 2:
+        if (!isBuyer) return null;
+        return FloatingActionButton.extended(
+          backgroundColor: const Color(0xFFFF9100),
+          label: const Text('문의 작성', style: TextStyle(color: Colors.white)),
+          icon: const Icon(Icons.help_outline, color: Colors.white),
+          onPressed: () {
+            Navigator.pushNamed(context, '/qnaWrite', arguments: {
+              'productId': int.tryParse(widget.productId) ?? 0,
+            }).then((success) {
+              if (success == true) _loadAllData();
+            });
+          },
+        );
+      default:
+        return null;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
     _loadAllData();
   }
 
@@ -76,6 +154,9 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
 
       // 1. Load detail
       final detail = await appService.getProductDetail(productIdVal, _userNo);
+      _baseShippingFee = prefs.getInt('saved_base_shipping_fee') ?? 3000;
+      _freeThreshold = prefs.getInt('saved_free_shipping_threshold') ?? 50000;
+
       if (detail != null) {
         _detail = detail;
         _isFav = detail.product.fav == '1';
@@ -85,21 +166,32 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
         final editorMode = detail.product.editorMode;
         if (editorMode == '1' || editorMode == '2') {
           var description = detail.product.description;
+          if (description.contains('&lt;') || description.contains('&gt;')) {
+            description = _decodeHtml(description);
+          }
           final htmlContent = """
             <html>
             <head>
                 <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
                 <style>
+                    * { box-sizing: border-box; }
+                    html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+                    img { max-width: 100% !important; height: auto !important; display: block; margin: 8px 0; }
+                    table { width: 100% !important; border-collapse: collapse; table-layout: fixed; }
+                    td, th { word-wrap: break-word; overflow-wrap: break-word; }
+                    video, iframe { max-width: 100% !important; height: auto !important; }
                     body { 
-                        background-color: #1E1E2C;
-                        color: #E2E8F0;
-                        padding: 12px;
-                        font-size: 14px;
+                        word-wrap: break-word; 
+                        padding: 16px;
+                        font-size: 16px;
                         line-height: 1.6;
-                        font-family: system-ui, sans-serif;
+                        color: #E2E8F0;
+                        background-color: #1E1E2C;
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                     }
-                    img { max-width: 100% !important; height: auto !important; }
+                    /* Remove fixed widths from inline styles */
+                    [style*="width"] { max-width: 100% !important; }
                 </style>
             </head>
             <body>$description</body>
@@ -107,7 +199,17 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
           """;
           _webViewController = WebViewController()
             ..setJavaScriptMode(JavaScriptMode.unrestricted)
+            ..enableZoom(true)
             ..setBackgroundColor(const Color(0xFF1E1E2C))
+            ..setNavigationDelegate(
+              NavigationDelegate(
+                onPageFinished: (url) async {
+                  await _updateWebViewHeight();
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  await _updateWebViewHeight();
+                },
+              ),
+            )
             ..loadHtmlString(htmlContent);
         }
       }
@@ -482,7 +584,31 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFFF9100)),
             )
-          : NestedScrollView(
+          : _detail == null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.white30),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '상품 정보를 불러오지 못했습니다.',
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF9100),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        onPressed: _loadAllData,
+                        child: const Text('다시 시도', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                )
+              : NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
                   SliverAppBar(
@@ -553,11 +679,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               ),
             ),
       floatingActionButton: _detail != null
-          ? FloatingActionButton(
-              backgroundColor: const Color(0xFFFF9100),
-              onPressed: _handleFabClick,
-              child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-            )
+          ? _buildFAB()
           : null,
     );
   }
@@ -687,6 +809,39 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
               const SizedBox(height: 12),
             ],
 
+            // Shipping Info Card (배송비 카드)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.local_shipping, color: Color(0xFFFF9100), size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '배송비: ${_baseShippingFee.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}원',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '(${_freeThreshold.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}원 이상 구매 시 무료)',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // Description HTML Webview / Text
             const Text(
               '상품 설명',
@@ -695,48 +850,49 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
             const SizedBox(height: 8),
             product.editorMode == '1' || product.editorMode == '2'
                 ? SizedBox(
-                    height: 300,
+                    height: _webViewHeight,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: WebViewWidget(controller: _webViewController!),
                     ),
                   )
                 : Text(
-                    product.description.isEmpty ? '등록된 상품 설명이 없습니다.' : product.description,
+                    product.description.isEmpty 
+                        ? '등록된 상품 설명이 없습니다.' 
+                        : _decodeHtml(product.description),
                     style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
                   ),
 
             const SizedBox(height: 20),
 
-            // Sub-images gallery
+            // Sub-images stacked gallery (세로형 추가 이미지 목록)
             if (subImages.isNotEmpty) ...[
               const Text(
                 '추가 이미지',
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
               ),
               const SizedBox(height: 10),
-              Row(
+              Column(
                 children: subImages.map((img) {
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => _showImageViewer(img.imageUrl ?? ''),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        height: 100,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(img.imageUrl ?? '', fit: BoxFit.cover),
-                        ),
+                  return GestureDetector(
+                    onTap: () => _showImageViewer(img.imageUrl ?? ''),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      height: 200,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(img.imageUrl ?? '', fit: BoxFit.cover),
                       ),
                     ),
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
             ],
 
             // Total amount & Checkout Button
@@ -790,108 +946,90 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
   }
 
   Widget _buildReviewsTab() {
-    final isBuyer = (_memberCode == Constants.rolePub);
-    return Scaffold(
-      backgroundColor: const Color(0xFF1E1E2C),
-      body: RefreshIndicator(
-        onRefresh: _loadAllData,
-        color: const Color(0xFFFF9100),
-        child: _reviews.isEmpty
-            ? const Center(
-                child: Text('작성된 리뷰가 없습니다.', style: TextStyle(color: Colors.white38)),
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: _reviews.length,
-                itemBuilder: (ctx, idx) {
-                  final review = _reviews[idx];
-                  return Card(
-                    color: Colors.white.withOpacity(0.06),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+    return RefreshIndicator(
+      onRefresh: _loadAllData,
+      color: const Color(0xFFFF9100),
+      child: _reviews.isEmpty
+          ? const Center(
+              child: Text('작성된 리뷰가 없습니다.', style: TextStyle(color: Colors.white38)),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: _reviews.length,
+              itemBuilder: (ctx, idx) {
+                final review = _reviews[idx];
+                return Card(
+                  color: Colors.white.withOpacity(0.06),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(review.writerId, style: const TextStyle(color: Color(0xFFFF9100), fontWeight: FontWeight.bold)),
+                            Text(review.writeDt, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: List.generate(5, (starIdx) {
+                            return Icon(
+                              starIdx < review.rating ? Icons.star : Icons.star_border,
+                              color: Colors.amber,
+                              size: 18,
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(review.contents, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                        if (review.filePaths != null && review.filePaths!.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          GestureDetector(
+                            onTap: () => _showImageViewer(review.filePaths!),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(review.filePaths!, height: 80, width: 80, fit: BoxFit.cover),
+                            ),
+                          ),
+                        ],
+                        if (review.writerNo == _userNo) ...[
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Text(review.writerId, style: const TextStyle(color: Color(0xFFFF9100), fontWeight: FontWeight.bold)),
-                              Text(review.writeDt, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, '/reviewWrite', arguments: {
+                                    'productId': int.tryParse(widget.productId) ?? 0,
+                                    'reviewId': review.reviewNo.toString(),
+                                    'contents': review.contents,
+                                    'rating': review.rating,
+                                    'filePaths': review.filePaths,
+                                  }).then((success) {
+                                    if (success == true) _loadAllData();
+                                  });
+                                },
+                                child: const Text('수정', style: TextStyle(color: Colors.white70)),
+                              ),
+                              TextButton(
+                                onPressed: () => _deleteReview(review.reviewNo),
+                                child: const Text('삭제', style: TextStyle(color: Colors.redAccent)),
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: List.generate(5, (starIdx) {
-                              return Icon(
-                                starIdx < review.rating ? Icons.star : Icons.star_border,
-                                color: Colors.amber,
-                                size: 18,
-                              );
-                            }),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(review.contents, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                          if (review.filePaths != null && review.filePaths!.isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            GestureDetector(
-                              onTap: () => _showImageViewer(review.filePaths!),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(review.filePaths!, height: 80, width: 80, fit: BoxFit.cover),
-                              ),
-                            ),
-                          ],
-                          if (review.writerNo == _userNo) ...[
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pushNamed(context, '/reviewWrite', arguments: {
-                                      'productId': int.tryParse(widget.productId) ?? 0,
-                                      'reviewId': review.reviewNo.toString(),
-                                      'contents': review.contents,
-                                      'rating': review.rating,
-                                      'filePaths': review.filePaths,
-                                    }).then((success) {
-                                      if (success == true) _loadAllData();
-                                    });
-                                  },
-                                  child: const Text('수정', style: TextStyle(color: Colors.white70)),
-                                ),
-                                TextButton(
-                                  onPressed: () => _deleteReview(review.reviewNo),
-                                  child: const Text('삭제', style: TextStyle(color: Colors.redAccent)),
-                                ),
-                              ],
-                            ),
-                          ],
                         ],
-                      ),
+                      ],
                     ),
-                  );
-                },
-              ),
-      ),
-      floatingActionButton: isBuyer
-          ? FloatingActionButton.extended(
-              backgroundColor: const Color(0xFFFF9100),
-              label: const Text('리뷰 작성', style: TextStyle(color: Colors.white)),
-              icon: const Icon(Icons.edit, color: Colors.white),
-              onPressed: () {
-                Navigator.pushNamed(context, '/reviewWrite', arguments: {
-                  'productId': int.tryParse(widget.productId) ?? 0,
-                }).then((success) {
-                  if (success == true) _loadAllData();
-                });
+                  ),
+                );
               },
-            )
-          : null,
+            ),
     );
   }
 
@@ -932,129 +1070,111 @@ class _AdDetailScreenState extends State<AdDetailScreen> with SingleTickerProvid
   }
 
   Widget _buildQnasTab() {
-    final isBuyer = (_memberCode == Constants.rolePub);
     final isSellerOrAdmin = (_memberCode == Constants.roleSell || _memberCode == Constants.roleAdmin);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF1E1E2C),
-      body: RefreshIndicator(
-        onRefresh: _loadAllData,
-        color: const Color(0xFFFF9100),
-        child: _qnas.isEmpty
-            ? const Center(
-                child: Text('작성된 문의글이 없습니다.', style: TextStyle(color: Colors.white38)),
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: _qnas.length,
-                itemBuilder: (ctx, idx) {
-                  final qna = _qnas[idx];
-                  final isSecret = qna.secretYn == 'Y';
-                  final isMine = qna.writerNo == _userNo;
-                  final canRead = !isSecret || isMine || isSellerOrAdmin;
+    return RefreshIndicator(
+      onRefresh: _loadAllData,
+      color: const Color(0xFFFF9100),
+      child: _qnas.isEmpty
+          ? const Center(
+              child: Text('작성된 문의글이 없습니다.', style: TextStyle(color: Colors.white38)),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: _qnas.length,
+              itemBuilder: (ctx, idx) {
+                final qna = _qnas[idx];
+                final isSecret = qna.secretYn == 'Y';
+                final isMine = qna.writerNo == _userNo;
+                final canRead = !isSecret || isMine || isSellerOrAdmin;
 
-                  return Card(
-                    color: Colors.white.withOpacity(0.06),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                return Card(
+                  color: Colors.white.withOpacity(0.06),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.white.withOpacity(0.1)),
                     ),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(qna.writerId, style: const TextStyle(color: Color(0xFFFF9100), fontWeight: FontWeight.bold)),
-                                  if (isSecret) ...[
-                                    const SizedBox(width: 6),
-                                    const Icon(Icons.lock, color: Colors.white38, size: 14),
-                                  ],
-                                ],
-                              ),
-                              Text(qna.writeDt, style: const TextStyle(color: Colors.white38, fontSize: 12)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            qna.title,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                          ),
-                          const SizedBox(height: 6),
-                          canRead
-                              ? Text(qna.contents, style: const TextStyle(color: Colors.white70, fontSize: 14))
-                              : const Text('비밀글로 등록된 문의글입니다.', style: TextStyle(color: Colors.white38, fontSize: 14)),
-                          if (qna.answerContents != null && qna.answerContents!.isNotEmpty) ...[
-                            const Divider(color: Colors.white24),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
                             Row(
                               children: [
-                                const Text('답변', style: TextStyle(color: Color(0xFFFF9100), fontWeight: FontWeight.bold)),
-                                const SizedBox(width: 8),
-                                Text(qna.answerDt ?? '', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                                Text(qna.writerId, style: const TextStyle(color: Color(0xFFFF9100), fontWeight: FontWeight.bold)),
+                                if (isSecret) ...[
+                                  const SizedBox(width: 6),
+                                  const Icon(Icons.lock, color: Colors.white38, size: 14),
+                                ],
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            canRead
-                                ? Text(qna.answerContents!, style: const TextStyle(color: Colors.white70, fontSize: 14))
-                                : const Text('답변은 작성자만 볼 수 있습니다.', style: TextStyle(color: Colors.white38, fontSize: 14)),
+                            Text(qna.writeDt, style: const TextStyle(color: Colors.white38, fontSize: 12)),
                           ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          qna.title,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                        const SizedBox(height: 6),
+                        canRead
+                            ? Text(qna.contents, style: const TextStyle(color: Colors.white70, fontSize: 14))
+                            : const Text('비밀글로 등록된 문의글입니다.', style: TextStyle(color: Colors.white38, fontSize: 14)),
+                        if (qna.answerContents != null && qna.answerContents!.isNotEmpty) ...[
+                          const Divider(color: Colors.white24),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              if (isMine) ...[
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pushNamed(context, '/qnaWrite', arguments: {
-                                      'productId': int.tryParse(widget.productId) ?? 0,
-                                      'qnaId': qna.qnaNo.toString(),
-                                      'title': qna.title,
-                                      'contents': qna.contents,
-                                      'secretYn': qna.secretYn,
-                                    }).then((success) {
-                                      if (success == true) _loadAllData();
-                                    });
-                                  },
-                                  child: const Text('수정', style: TextStyle(color: Colors.white70)),
-                                ),
-                                TextButton(
-                                  onPressed: () => _deleteQna(qna.qnaNo),
-                                  child: const Text('삭제', style: TextStyle(color: Colors.redAccent)),
-                                ),
-                              ],
-                              if (isSellerOrAdmin && (qna.answerContents == null || qna.answerContents!.isEmpty)) ...[
-                                TextButton(
-                                  onPressed: () => _showAnswerDialog(qna.qnaNo),
-                                  child: const Text('답변 작성', style: TextStyle(color: Color(0xFFFF9100))),
-                                ),
-                              ],
+                              const Text('답변', style: TextStyle(color: Color(0xFFFF9100), fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 8),
+                              Text(qna.answerDt ?? '', style: const TextStyle(color: Colors.white38, fontSize: 12)),
                             ],
                           ),
+                          const SizedBox(height: 4),
+                          canRead
+                              ? Text(qna.answerContents!, style: const TextStyle(color: Colors.white70, fontSize: 14))
+                              : const Text('답변은 작성자만 볼 수 있습니다.', style: TextStyle(color: Colors.white38, fontSize: 14)),
                         ],
-                      ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (isMine) ...[
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, '/qnaWrite', arguments: {
+                                    'productId': int.tryParse(widget.productId) ?? 0,
+                                    'qnaId': qna.qnaNo.toString(),
+                                    'title': qna.title,
+                                    'contents': qna.contents,
+                                    'secretYn': qna.secretYn,
+                                  }).then((success) {
+                                    if (success == true) _loadAllData();
+                                  });
+                                },
+                                child: const Text('수정', style: TextStyle(color: Colors.white70)),
+                              ),
+                              TextButton(
+                                onPressed: () => _deleteQna(qna.qnaNo),
+                                child: const Text('삭제', style: TextStyle(color: Colors.redAccent)),
+                              ),
+                            ],
+                            if (isSellerOrAdmin && (qna.answerContents == null || qna.answerContents!.isEmpty)) ...[
+                              TextButton(
+                                onPressed: () => _showAnswerDialog(qna.qnaNo),
+                                child: const Text('답변 작성', style: TextStyle(color: Color(0xFFFF9100))),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
                     ),
-                  );
-                },
-              ),
-      ),
-      floatingActionButton: isBuyer
-          ? FloatingActionButton.extended(
-              backgroundColor: const Color(0xFFFF9100),
-              label: const Text('문의 작성', style: TextStyle(color: Colors.white)),
-              icon: const Icon(Icons.help_outline, color: Colors.white),
-              onPressed: () {
-                Navigator.pushNamed(context, '/qnaWrite', arguments: {
-                  'productId': int.tryParse(widget.productId) ?? 0,
-                }).then((success) {
-                  if (success == true) _loadAllData();
-                });
+                  ),
+                );
               },
-            )
-          : null,
+            ),
     );
   }
 

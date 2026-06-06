@@ -520,7 +520,7 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final body = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-      final list = body['reviews'] as List? ?? [];
+      final list = (body['list'] ?? body['data']) as List? ?? [];
       return list.map((item) => ReviewItem.fromJson(item as Map<String, dynamic>)).toList();
     } else {
       throw Exception('Fetch Review List Failed: ${response.statusCode}');
@@ -626,7 +626,7 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final body = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-      final list = body['qnas'] as List? ?? [];
+      final list = (body['list'] ?? body['data']) as List? ?? [];
       return list.map((item) => QnaItem.fromJson(item as Map<String, dynamic>)).toList();
     } else {
       throw Exception('Fetch QnA List Failed: ${response.statusCode}');
