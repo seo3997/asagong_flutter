@@ -1147,6 +1147,12 @@ class _AdDetailScreenState extends State<AdDetailScreen>
                                     ..onUpdate = (_) {}
                                     ..onEnd = (_) {},
                                 ),
+                                Factory<OneSequenceGestureRecognizer>(
+                                  () => VerticalDragGestureRecognizer(),
+                                ),
+                                Factory<OneSequenceGestureRecognizer>(
+                                  () => HorizontalDragGestureRecognizer(),
+                                ),
                               },
                         ),
                       ),
