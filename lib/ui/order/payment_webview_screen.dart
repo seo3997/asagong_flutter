@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tosspayments_widget_sdk_flutter/payment_widget.dart';
@@ -21,8 +19,7 @@ class PaymentWebViewScreen extends StatefulWidget {
   State<PaymentWebViewScreen> createState() => _PaymentWebViewScreenState();
 }
 
-class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> with WidgetsBindingObserver {
-  static const _channel = MethodChannel('com.example.asagong_flutter/deeplink');
+class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   late PaymentWidget _paymentWidget;
 
   bool _isSdkInitialized = false;
@@ -38,7 +35,6 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> with Widget
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _orderId = widget.arguments['orderId'] as String? ?? '';
     _orderNo = widget.arguments['orderNo'] as String? ?? '';
     _amount = widget.arguments['amount'] as int? ?? 0;
@@ -46,71 +42,12 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> with Widget
     final rawName = widget.arguments['productName'] as String? ?? '';
     _productName = rawName.trim().isEmpty ? '상품 결제' : rawName;
 
-    _initDeepLinkListener();
     _loadClientKeyAndInitialize();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      debugPrint("App resumed - pulling pending deep link from native");
-      _checkInitialLink();
-    }
-  }
-
-  void _initDeepLinkListener() {
-    _channel.setMethodCallHandler((call) async {
-      if (call.method == 'onLinkReceived') {
-        final String? link = call.arguments as String?;
-        if (link != null) {
-          debugPrint("Received DeepLink during payment: $link");
-          _handleDeepLink(link);
-        }
-      }
-    });
-    _checkInitialLink();
-  }
-
-  Future<void> _checkInitialLink() async {
-    try {
-      final String? initialLink = await _channel.invokeMethod<String>('getInitialLink');
-      if (initialLink != null) {
-        debugPrint("Received initial DeepLink during payment: $initialLink");
-        _handleDeepLink(initialLink);
-      }
-    } catch (e) {
-      debugPrint("Failed to get initial link: $e");
-    }
-  }
-
-  void _handleDeepLink(String link) {
-    debugPrint("=== [DEBUG] _handleDeepLink START: $link ===");
-    try {
-      final uri = Uri.parse(link);
-      debugPrint("=== [DEBUG] _handleDeepLink parsed uri scheme: ${uri.scheme} ===");
-      if (uri.scheme == 'asagongpay') {
-        final paymentKey = uri.queryParameters['paymentKey'];
-        final orderId = uri.queryParameters['orderId'] ?? uri.queryParameters['orderNo'] ?? _orderNo;
-        final amountStr = uri.queryParameters['amount'];
-        final amount = amountStr != null ? int.tryParse(amountStr) : _amount;
-
-        debugPrint("=== [DEBUG] _handleDeepLink params - paymentKey: $paymentKey, orderId: $orderId, amount: $amount ===");
-
-        if (paymentKey != null && paymentKey.isNotEmpty) {
-          _confirmPayment(paymentKey, orderId, amount ?? _amount);
-        } else {
-          debugPrint("=== [DEBUG] _handleDeepLink: paymentKey is empty or null ===");
-        }
-      }
-    } catch (e) {
-      debugPrint("=== [DEBUG] _handleDeepLink ERROR: $e ===");
-    }
   }
 
   Future<void> _loadClientKeyAndInitialize() async {
