@@ -93,7 +93,7 @@ class _AdDetailScreenState extends State<AdDetailScreen>
         zoomStyle.id = 'zoom-style';
         document.head.appendChild(zoomStyle);
       }
-      zoomStyle.innerHTML = 'body, p, span, div, table, tr, td, th { font-size: ${16 * _zoomScale}px !important; }';
+      zoomStyle.innerHTML = 'html, body { zoom: ${_zoomScale} !important; overflow-x: ${_zoomScale > 1.0 ? "auto" : "hidden"} !important; }';
     """);
     Future.delayed(const Duration(milliseconds: 300), () {
       _updateWebViewHeight();
@@ -1170,6 +1170,11 @@ class _AdDetailScreenState extends State<AdDetailScreen>
                       borderRadius: BorderRadius.circular(12),
                       child: WebViewWidget(
                         controller: _webViewController!,
+                        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                          Factory<OneSequenceGestureRecognizer>(
+                            () => HorizontalDragGestureRecognizer(),
+                          ),
+                        },
                       ),
                     ),
                   )
