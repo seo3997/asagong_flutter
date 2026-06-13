@@ -294,7 +294,7 @@ class _AdDetailScreenState extends State<AdDetailScreen>
             <html>
             <head>
                 <meta charset="utf-8">
-                 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
                 <style>
                     * { box-sizing: border-box; }
                     html, body { margin: 0; padding: 0; width: 100%; }
@@ -324,7 +324,7 @@ class _AdDetailScreenState extends State<AdDetailScreen>
           """;
           _webViewController = WebViewController()
             ..setJavaScriptMode(JavaScriptMode.unrestricted)
-            ..enableZoom(true)
+            ..enableZoom(false)
             ..setBackgroundColor(const Color(0xFF1E1E2C))
             ..setNavigationDelegate(
               NavigationDelegate(
@@ -1110,8 +1110,8 @@ class _AdDetailScreenState extends State<AdDetailScreen>
                       child: WebViewWidget(
                         controller: _webViewController!,
                         gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                          Factory<OneSequenceGestureRecognizer>(
-                            () => EagerGestureRecognizer(),
+                          Factory<HorizontalDragGestureRecognizer>(
+                            () => HorizontalDragGestureRecognizer(),
                           ),
                         },
                       ),
