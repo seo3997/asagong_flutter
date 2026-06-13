@@ -86,7 +86,15 @@ class _AdDetailScreenState extends State<AdDetailScreen>
   }
 
   void _applyZoom() {
-    _webViewController?.runJavaScript("document.body.style.zoom = '$_zoomScale'");
+    _webViewController?.runJavaScript("""
+      var zoomStyle = document.getElementById('zoom-style');
+      if (!zoomStyle) {
+        zoomStyle = document.createElement('style');
+        zoomStyle.id = 'zoom-style';
+        document.head.appendChild(zoomStyle);
+      }
+      zoomStyle.innerHTML = 'body, p, span, div, table, tr, td, th { font-size: ${16 * _zoomScale}px !important; }';
+    """);
     Future.delayed(const Duration(milliseconds: 300), () {
       _updateWebViewHeight();
     });
