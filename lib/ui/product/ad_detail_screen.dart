@@ -47,10 +47,7 @@ class _AdDetailScreenState extends State<AdDetailScreen>
   double _webViewHeight = 500;
 
   WebViewController? _webViewController;
-  final Set<int> _activePointers = {};
-  bool _isPinching = false;
-  Offset? _touchStartOffset;
-  bool _hasScrolledParent = false;
+  double _zoomScale = 1.0;
 
   String _decodeHtml(String html) {
     return html
@@ -85,6 +82,31 @@ class _AdDetailScreenState extends State<AdDetailScreen>
       }
     } catch (e) {
       debugPrint("Failed to get webview height: $e");
+    }
+  }
+
+  void _applyZoom() {
+    _webViewController?.runJavaScript("document.body.style.zoom = '$_zoomScale'");
+    Future.delayed(const Duration(milliseconds: 300), () {
+      _updateWebViewHeight();
+    });
+  }
+
+  void _zoomIn() {
+    if (_zoomScale < 2.0) {
+      setState(() {
+        _zoomScale += 0.25;
+      });
+      _applyZoom();
+    }
+  }
+
+  void _zoomOut() {
+    if (_zoomScale > 1.0) {
+      setState(() {
+        _zoomScale -= 0.25;
+      });
+      _applyZoom();
     }
   }
 
@@ -328,11 +350,12 @@ class _AdDetailScreenState extends State<AdDetailScreen>
           """;
           _webViewController = WebViewController()
             ..setJavaScriptMode(JavaScriptMode.unrestricted)
-            ..enableZoom(true)
+            ..enableZoom(false)
             ..setBackgroundColor(const Color(0xFF1E1E2C))
             ..setNavigationDelegate(
               NavigationDelegate(
                 onPageFinished: (url) {
+                  _applyZoom();
                   Future.delayed(const Duration(milliseconds: 200), () {
                     _updateWebViewHeight();
                   });
@@ -920,9 +943,7 @@ class _AdDetailScreenState extends State<AdDetailScreen>
       onRefresh: _loadAllData,
       color: const Color(0xFFFF9100),
       child: SingleChildScrollView(
-        physics: _isPinching
-            ? const NeverScrollableScrollPhysics()
-            : const AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1099,13 +1120,38 @@ class _AdDetailScreenState extends State<AdDetailScreen>
             ),
 
             // Description HTML Webview / Text
-            const Text(
-              '상품 설명',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '상품 설명',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.zoom_out, color: Colors.white70, size: 20),
+                      onPressed: _zoomScale > 1.0 ? _zoomOut : null,
+                    ),
+                    Text(
+                      '${(_zoomScale * 100).toInt()}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.zoom_in, color: Colors.white70, size: 20),
+                      onPressed: _zoomScale < 2.0 ? _zoomIn : null,
+                    ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             (product.editorMode == '1' || product.editorMode == '2') &&
@@ -1114,66 +1160,8 @@ class _AdDetailScreenState extends State<AdDetailScreen>
                     height: _webViewHeight,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Listener(
-                        onPointerDown: (PointerDownEvent event) {
-                          _activePointers.add(event.pointer);
-                          if (_activePointers.length == 1) {
-                            _touchStartOffset = event.position;
-                            _hasScrolledParent = false;
-                            // Disable parent scroll immediately on touch start to prevent conflicts
-                            setState(() {
-                              _isPinching = true;
-                            });
-                          } else if (_activePointers.length > 1) {
-                            setState(() {
-                              _isPinching = true;
-                            });
-                          }
-                        },
-                        onPointerMove: (PointerMoveEvent event) {
-                          if (_activePointers.length == 1 && _touchStartOffset != null && !_hasScrolledParent) {
-                            final difference = event.position - _touchStartOffset!;
-                            // If dragging vertically > 12px with 1 finger, it is a scroll: re-enable parent scroll
-                            if (difference.dy.abs() > 12 && difference.dx.abs() < 12) {
-                              _hasScrolledParent = true;
-                              setState(() {
-                                _isPinching = false;
-                              });
-                            }
-                          }
-                        },
-                        onPointerUp: (PointerUpEvent event) {
-                          _activePointers.remove(event.pointer);
-                          if (_activePointers.isEmpty) {
-                            _touchStartOffset = null;
-                            _hasScrolledParent = false;
-                            setState(() {
-                              _isPinching = false;
-                            });
-                          }
-                        },
-                        onPointerCancel: (PointerCancelEvent event) {
-                          _activePointers.remove(event.pointer);
-                          if (_activePointers.isEmpty) {
-                            _touchStartOffset = null;
-                            _hasScrolledParent = false;
-                            setState(() {
-                              _isPinching = false;
-                            });
-                          }
-                        },
-                        child: WebViewWidget(
-                          controller: _webViewController!,
-                          gestureRecognizers:
-                              <Factory<OneSequenceGestureRecognizer>>{
-                                Factory<OneSequenceGestureRecognizer>(
-                                  () => ScaleGestureRecognizer()
-                                    ..onStart = (_) {}
-                                    ..onUpdate = (_) {}
-                                    ..onEnd = (_) {},
-                                ),
-                              },
-                        ),
+                      child: WebViewWidget(
+                        controller: _webViewController!,
                       ),
                     ),
                   )
