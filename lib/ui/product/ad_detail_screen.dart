@@ -1111,10 +1111,7 @@ class _AdDetailScreenState extends State<AdDetailScreen>
                         controller: _webViewController!,
                         gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
                           Factory<OneSequenceGestureRecognizer>(
-                            () => ScaleGestureRecognizer(),
-                          ),
-                          Factory<OneSequenceGestureRecognizer>(
-                            () => HorizontalDragGestureRecognizer(),
+                            () => EagerGestureRecognizer(),
                           ),
                         },
                       ),
