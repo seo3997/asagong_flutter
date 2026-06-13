@@ -1,4 +1,4 @@
-package com.example.asagong_flutter
+package com.whomade.asagongf
 
 import android.content.Intent
 import android.net.Uri
@@ -10,7 +10,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val TAG = "MainActivityDeepLink"
-    private val CHANNEL = "com.example.asagong_flutter/deeplink"
+    private val CHANNEL = "com.whomade.asagongf/deeplink"
     private var channel: MethodChannel? = null
     private var pendingData: String? = null
 
