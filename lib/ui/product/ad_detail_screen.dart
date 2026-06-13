@@ -47,6 +47,8 @@ class _AdDetailScreenState extends State<AdDetailScreen>
   double _webViewHeight = 500;
 
   WebViewController? _webViewController;
+  final Set<int> _activePointers = {};
+  bool _isPinching = false;
 
   String _decodeHtml(String html) {
     return html
@@ -916,7 +918,9 @@ class _AdDetailScreenState extends State<AdDetailScreen>
       onRefresh: _loadAllData,
       color: const Color(0xFFFF9100),
       child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics: _isPinching
+            ? const NeverScrollableScrollPhysics()
+            : const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1108,17 +1112,43 @@ class _AdDetailScreenState extends State<AdDetailScreen>
                     height: _webViewHeight,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: WebViewWidget(
-                        controller: _webViewController!,
-                        gestureRecognizers:
-                            <Factory<OneSequenceGestureRecognizer>>{
-                              Factory<OneSequenceGestureRecognizer>(
-                                () => ScaleGestureRecognizer()
-                                  ..onStart = (_) {}
-                                  ..onUpdate = (_) {}
-                                  ..onEnd = (_) {},
-                              ),
-                            },
+                      child: Listener(
+                        onPointerDown: (PointerDownEvent event) {
+                          _activePointers.add(event.pointer);
+                          if (_activePointers.length > 1 && !_isPinching) {
+                            setState(() {
+                              _isPinching = true;
+                            });
+                          }
+                        },
+                        onPointerUp: (PointerUpEvent event) {
+                          _activePointers.remove(event.pointer);
+                          if (_activePointers.length <= 1 && _isPinching) {
+                            setState(() {
+                              _isPinching = false;
+                            });
+                          }
+                        },
+                        onPointerCancel: (PointerCancelEvent event) {
+                          _activePointers.remove(event.pointer);
+                          if (_activePointers.length <= 1 && _isPinching) {
+                            setState(() {
+                              _isPinching = false;
+                            });
+                          }
+                        },
+                        child: WebViewWidget(
+                          controller: _webViewController!,
+                          gestureRecognizers:
+                              <Factory<OneSequenceGestureRecognizer>>{
+                                Factory<OneSequenceGestureRecognizer>(
+                                  () => ScaleGestureRecognizer()
+                                    ..onStart = (_) {}
+                                    ..onUpdate = (_) {}
+                                    ..onEnd = (_) {},
+                                ),
+                              },
+                        ),
                       ),
                     ),
                   )
