@@ -49,6 +49,8 @@ class _AdDetailScreenState extends State<AdDetailScreen>
   WebViewController? _webViewController;
   final Set<int> _activePointers = {};
   bool _isPinching = false;
+  Offset? _touchStartOffset;
+  bool _hasScrolledParent = false;
 
   String _decodeHtml(String html) {
     return html
@@ -296,7 +298,7 @@ class _AdDetailScreenState extends State<AdDetailScreen>
             <html>
             <head>
                 <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
                 <style>
                     * { box-sizing: border-box; }
                     html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
@@ -1115,15 +1117,36 @@ class _AdDetailScreenState extends State<AdDetailScreen>
                       child: Listener(
                         onPointerDown: (PointerDownEvent event) {
                           _activePointers.add(event.pointer);
-                          if (_activePointers.length > 1 && !_isPinching) {
+                          if (_activePointers.length == 1) {
+                            _touchStartOffset = event.position;
+                            _hasScrolledParent = false;
+                            // Disable parent scroll immediately on touch start to prevent conflicts
+                            setState(() {
+                              _isPinching = true;
+                            });
+                          } else if (_activePointers.length > 1) {
                             setState(() {
                               _isPinching = true;
                             });
                           }
                         },
+                        onPointerMove: (PointerMoveEvent event) {
+                          if (_activePointers.length == 1 && _touchStartOffset != null && !_hasScrolledParent) {
+                            final difference = event.position - _touchStartOffset!;
+                            // If dragging vertically > 12px with 1 finger, it is a scroll: re-enable parent scroll
+                            if (difference.dy.abs() > 12 && difference.dx.abs() < 12) {
+                              _hasScrolledParent = true;
+                              setState(() {
+                                _isPinching = false;
+                              });
+                            }
+                          }
+                        },
                         onPointerUp: (PointerUpEvent event) {
                           _activePointers.remove(event.pointer);
-                          if (_activePointers.length <= 1 && _isPinching) {
+                          if (_activePointers.isEmpty) {
+                            _touchStartOffset = null;
+                            _hasScrolledParent = false;
                             setState(() {
                               _isPinching = false;
                             });
@@ -1131,7 +1154,9 @@ class _AdDetailScreenState extends State<AdDetailScreen>
                         },
                         onPointerCancel: (PointerCancelEvent event) {
                           _activePointers.remove(event.pointer);
-                          if (_activePointers.length <= 1 && _isPinching) {
+                          if (_activePointers.isEmpty) {
+                            _touchStartOffset = null;
+                            _hasScrolledParent = false;
                             setState(() {
                               _isPinching = false;
                             });
