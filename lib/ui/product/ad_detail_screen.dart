@@ -86,7 +86,12 @@ class _AdDetailScreenState extends State<AdDetailScreen>
   }
 
   void _applyZoom() {
+    // 1. Set CSS body zoom
     _webViewController?.runJavaScript("document.body.style.zoom = '$_zoomScale'");
+    // 2. Set viewport scale dynamically to force native engine scaling
+    _webViewController?.runJavaScript(
+      "var vp = document.querySelector('meta[name=viewport]'); if (vp) { vp.setAttribute('content', 'width=device-width, initial-scale=$_zoomScale, minimum-scale=$_zoomScale, maximum-scale=$_zoomScale, user-scalable=no'); }"
+    );
     Future.delayed(const Duration(milliseconds: 300), () {
       _updateWebViewHeight();
     });
@@ -320,7 +325,7 @@ class _AdDetailScreenState extends State<AdDetailScreen>
             <html>
             <head>
                 <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+                 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
                 <style>
                     * { box-sizing: border-box; }
                     html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
@@ -350,7 +355,7 @@ class _AdDetailScreenState extends State<AdDetailScreen>
           """;
           _webViewController = WebViewController()
             ..setJavaScriptMode(JavaScriptMode.unrestricted)
-            ..enableZoom(false)
+            ..enableZoom(true)
             ..setBackgroundColor(const Color(0xFF1E1E2C))
             ..setNavigationDelegate(
               NavigationDelegate(
