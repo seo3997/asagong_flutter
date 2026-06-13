@@ -47,7 +47,6 @@ class _AdDetailScreenState extends State<AdDetailScreen>
   double _webViewHeight = 500;
 
   WebViewController? _webViewController;
-  double _zoomScale = 1.0;
 
   String _decodeHtml(String html) {
     return html
@@ -82,39 +81,6 @@ class _AdDetailScreenState extends State<AdDetailScreen>
       }
     } catch (e) {
       debugPrint("Failed to get webview height: $e");
-    }
-  }
-
-  void _applyZoom() {
-    _webViewController?.runJavaScript("""
-      var zoomStyle = document.getElementById('zoom-style');
-      if (!zoomStyle) {
-        zoomStyle = document.createElement('style');
-        zoomStyle.id = 'zoom-style';
-        document.head.appendChild(zoomStyle);
-      }
-      zoomStyle.innerHTML = 'html, body { zoom: ${_zoomScale} !important; overflow-x: ${_zoomScale > 1.0 ? "auto" : "hidden"} !important; }';
-    """);
-    Future.delayed(const Duration(milliseconds: 300), () {
-      _updateWebViewHeight();
-    });
-  }
-
-  void _zoomIn() {
-    if (_zoomScale < 2.0) {
-      setState(() {
-        _zoomScale += 0.25;
-      });
-      _applyZoom();
-    }
-  }
-
-  void _zoomOut() {
-    if (_zoomScale > 1.0) {
-      setState(() {
-        _zoomScale -= 0.25;
-      });
-      _applyZoom();
     }
   }
 
@@ -328,10 +294,10 @@ class _AdDetailScreenState extends State<AdDetailScreen>
             <html>
             <head>
                 <meta charset="utf-8">
-                 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+                 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
                 <style>
                     * { box-sizing: border-box; }
-                    html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+                    html, body { margin: 0; padding: 0; width: 100%; }
                     img { max-width: 100% !important; height: auto !important; display: block; margin: 8px 0; }
                     table { width: 100% !important; border-collapse: collapse; table-layout: fixed; }
                     td, th { word-wrap: break-word; overflow-wrap: break-word; }
@@ -363,7 +329,6 @@ class _AdDetailScreenState extends State<AdDetailScreen>
             ..setNavigationDelegate(
               NavigationDelegate(
                 onPageFinished: (url) {
-                  _applyZoom();
                   Future.delayed(const Duration(milliseconds: 200), () {
                     _updateWebViewHeight();
                   });
@@ -1127,39 +1092,13 @@ class _AdDetailScreenState extends State<AdDetailScreen>
               ),
             ),
 
-            // Description HTML Webview / Text
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '상품 설명',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.zoom_out, color: Colors.white70, size: 20),
-                      onPressed: _zoomScale > 1.0 ? _zoomOut : null,
-                    ),
-                    Text(
-                      '${(_zoomScale * 100).toInt()}%',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.zoom_in, color: Colors.white70, size: 20),
-                      onPressed: _zoomScale < 2.0 ? _zoomIn : null,
-                    ),
-                  ],
-                ),
-              ],
+            const Text(
+              '상품 설명',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 8),
             (product.editorMode == '1' || product.editorMode == '2') &&
@@ -1171,6 +1110,9 @@ class _AdDetailScreenState extends State<AdDetailScreen>
                       child: WebViewWidget(
                         controller: _webViewController!,
                         gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                          Factory<OneSequenceGestureRecognizer>(
+                            () => ScaleGestureRecognizer(),
+                          ),
                           Factory<OneSequenceGestureRecognizer>(
                             () => HorizontalDragGestureRecognizer(),
                           ),
