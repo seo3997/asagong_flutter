@@ -43,6 +43,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           await prefs.setString('saved_branch_id', response.branchInfo?.branchId.toString() ?? '');
           await prefs.setString('saved_login_idx', response.loginIdx ?? '');
           await prefs.setString('saved_toss_client_key', response.branchInfo?.tossClientKey ?? '');
+          await prefs.setInt('saved_base_shipping_fee', response.branchInfo?.baseShippingFee ?? 0);
+          await prefs.setInt('saved_free_shipping_threshold', response.branchInfo?.freeShippingThreshold ?? 0);
           emit(AuthAuthenticated(response));
         } else {
           // If auto login fails, clear and emit unauthenticated
@@ -82,6 +84,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         await prefs.setString('saved_branch_id', response.branchInfo?.branchId.toString() ?? '');
         await prefs.setString('saved_login_idx', response.loginIdx ?? '');
         await prefs.setString('saved_toss_client_key', response.branchInfo?.tossClientKey ?? '');
+        await prefs.setInt('saved_base_shipping_fee', response.branchInfo?.baseShippingFee ?? 0);
+        await prefs.setInt('saved_free_shipping_threshold', response.branchInfo?.freeShippingThreshold ?? 0);
 
         emit(AuthAuthenticated(response));
       } else {
@@ -117,6 +121,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await prefs.remove('saved_branch_id');
     await prefs.remove('saved_login_idx');
     await prefs.remove('saved_toss_client_key');
+    await prefs.remove('saved_base_shipping_fee');
+    await prefs.remove('saved_free_shipping_threshold');
   }
 
   String _getErrorMessage(int resultCode) {

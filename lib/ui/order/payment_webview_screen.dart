@@ -1,32 +1,29 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/service/app_service.dart';
 import '../../data/models/order_models.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 class PaymentWebViewScreen extends StatefulWidget {
   final Map<String, dynamic> arguments;
 
-  const PaymentWebViewScreen({
-    super.key,
-    required this.arguments,
-  });
+  const PaymentWebViewScreen({super.key, required this.arguments});
 
   @override
   State<PaymentWebViewScreen> createState() => _PaymentWebViewScreenState();
 }
 
 class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
+  static const _channel = MethodChannel('com.example.asagong_flutter/deeplink');
   late final WebViewController _controller;
-  bool _isLoading = true;
-  String _clientKey = '';
-  String? _token;
-  int _userNo = 0;
+  bool _isWidgetInitialized = false;
+  bool _isLoading = false;
 
+  String _clientKey = '';
+  int _userNo = 0;
   late String _orderId;
   late String _orderNo;
   late int _amount;
@@ -38,17 +35,17 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     _orderId = widget.arguments['orderId'] as String? ?? '';
     _orderNo = widget.arguments['orderNo'] as String? ?? '';
     _amount = widget.arguments['amount'] as int? ?? 0;
-    
+
     final rawName = widget.arguments['productName'] as String? ?? '';
     _productName = rawName.trim().isEmpty ? '상품 결제' : rawName;
 
+    _initDeepLinkListener();
     _loadClientKeyAndInitialize();
   }
 
   Future<void> _loadClientKeyAndInitialize() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _token = prefs.getString('saved_token');
       _userNo = int.tryParse(prefs.getString('saved_login_idx') ?? '') ?? 0;
       _clientKey = prefs.getString('saved_toss_client_key') ?? '';
 
@@ -57,201 +54,238 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
         _clientKey = 'test_ck_GjLJoX75zW9zdBa1yPd36w529OpV'; // Toss Payments test client key
       }
 
-      final successUrl = 'http://localhost/payment-success';
-      final failUrl = 'http://localhost/payment-fail';
-
-      final htmlContent = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script src="https://js.tosspayments.com/v1"></script>
-            <style>
-              body { background-color: #1E1E2C; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; color: white; font-family: sans-serif; }
-            </style>
-        </head>
-        <body>
-            <div id="status">결제 창을 여는 중...</div>
-            <script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    try {
-                        var tossPayments = TossPayments("$_clientKey");
-                        tossPayments.requestPayment('CARD', {
-                            amount: $_amount,
-                            orderId: '${_orderNo.replaceAll("'", "\\'")}',
-                            orderName: '${_productName.replaceAll("'", "\\'")}',
-                            successUrl: '$successUrl',
-                            failUrl: '$failUrl',
-                        });
-                    } catch (e) {
-                        console.error("TossPayments error:", e);
-                        document.getElementById("status").innerText = "오류: " + e.message;
-                    }
-                });
-            </script>
-        </body>
-        </html>
-      """;
-
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(const Color(0xFF1E1E2C))
         ..setNavigationDelegate(
           NavigationDelegate(
-            onPageStarted: (url) {
-              _handleUrl(url);
-            },
-            onNavigationRequest: (request) {
+            onNavigationRequest: (NavigationRequest request) async {
               final url = request.url;
-              if (_isRedirectUrl(url)) {
-                _handleUrl(url);
+              debugPrint("WebView checking URL: $url");
+
+              if (url.contains('payment-success')) {
+                final uri = Uri.parse(url);
+                final paymentKey = uri.queryParameters['paymentKey'] ?? '';
+                final orderIdFromUrl = uri.queryParameters['orderId'] ?? _orderNo;
+                final amountVal = int.tryParse(uri.queryParameters['amount'] ?? '') ?? _amount;
+                
+                _confirmPayment(paymentKey, orderIdFromUrl, amountVal);
+                return NavigationDecision.prevent;
+              } else if (url.contains('payment-fail')) {
+                final uri = Uri.parse(url);
+                final message = uri.queryParameters['message'] ?? '결제에 실패했습니다.';
+                _finishWithFail(message);
                 return NavigationDecision.prevent;
               }
-
-              // Deep link external apps (Card apps, Shinhan Pay, KB Pay, etc.)
+              
               if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                setState(() {
-                  _isLoading = true;
-                });
-                _launchExternalApp(url);
+                try {
+                  if (url.startsWith('intent://')) {
+                    final parsed = _parseIntentUrl(url);
+                    if (parsed != null) {
+                      final schemeUrl = parsed['schemeUrl'] ?? '';
+                      final packageName = parsed['package'] ?? '';
+                      
+                      if (schemeUrl.isNotEmpty) {
+                        try {
+                          await launchUrl(Uri.parse(schemeUrl), mode: LaunchMode.externalApplication);
+                          return NavigationDecision.prevent;
+                        } catch (_) {
+                          // Fallback to play store if scheme launching fails
+                        }
+                      }
+                      
+                      if (packageName.isNotEmpty) {
+                        try {
+                          await launchUrl(Uri.parse('market://details?id=$packageName'), mode: LaunchMode.externalApplication);
+                          return NavigationDecision.prevent;
+                        } catch (_) {}
+                      }
+                    }
+                    return NavigationDecision.prevent;
+                  }
+
+                  final decodedUrl = Uri.decodeFull(url);
+                  await launchUrl(Uri.parse(decodedUrl), mode: LaunchMode.externalApplication);
+                } catch (e) {
+                  debugPrint('Launch custom scheme error: $e');
+                }
                 return NavigationDecision.prevent;
               }
-
+              
               return NavigationDecision.navigate;
             },
-            onWebResourceError: (error) {
-              final failingUrl = error.url ?? '';
-              if (failingUrl.isNotEmpty && !failingUrl.startsWith('http://') && !failingUrl.startsWith('https://')) {
-                setState(() {
-                  _isLoading = true;
-                });
-                _launchExternalApp(failingUrl);
+            onWebResourceError: (WebResourceError error) async {
+              final failingUrl = error.url;
+              debugPrint("WebResourceError: code=${error.errorCode}, desc=${error.description}, url=$failingUrl");
+              if (failingUrl != null && !failingUrl.startsWith('http://') && !failingUrl.startsWith('https://')) {
+                try {
+                  if (failingUrl.startsWith('intent://')) {
+                    final parsed = _parseIntentUrl(failingUrl);
+                    if (parsed != null) {
+                      final schemeUrl = parsed['schemeUrl'] ?? '';
+                      final packageName = parsed['package'] ?? '';
+                      
+                      if (schemeUrl.isNotEmpty) {
+                        try {
+                          await launchUrl(Uri.parse(schemeUrl), mode: LaunchMode.externalApplication);
+                          return;
+                        } catch (_) {}
+                      }
+                      if (packageName.isNotEmpty) {
+                        try {
+                          await launchUrl(Uri.parse('market://details?id=$packageName'), mode: LaunchMode.externalApplication);
+                          return;
+                        } catch (_) {}
+                      }
+                    }
+                  } else {
+                    final decodedUrl = Uri.decodeFull(failingUrl);
+                    await launchUrl(Uri.parse(decodedUrl), mode: LaunchMode.externalApplication);
+                  }
+                } catch (e) {
+                  debugPrint('Launch from error url failed: $e');
+                }
               }
-            },
-            onPageFinished: (_) {
-              // Note: Do not force _isLoading to false here if we are redirecting to card apps,
-              // but standard page finishes should resolve loading.
-              setState(() {
-                _isLoading = false;
-              });
             },
           ),
         )
-        ..loadHtmlString(htmlContent, baseUrl: 'https://tosspayments.com');
+        ..loadHtmlString(
+          _buildHtml(),
+          baseUrl: 'https://tosspayments.com',
+        );
 
-      final platform = _controller.platform;
-      if (platform is AndroidWebViewController) {
-        await AndroidWebViewCookieManager(
-          const PlatformWebViewCookieManagerCreationParams(),
-        ).setAcceptThirdPartyCookies(platform, true);
-      }
-    } catch (_) {
       setState(() {
-        _isLoading = false;
+        _isWidgetInitialized = true;
       });
+    } catch (e) {
+      debugPrint("TossPayments init error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('결제 모듈 초기화 실패: $e')),
+        );
+      }
     }
   }
 
-  bool _isRedirectUrl(String url) {
-    return url.contains('payment-success') || url.contains('payment-fail');
+  void _initDeepLinkListener() {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onLinkReceived') {
+        final String? link = call.arguments as String?;
+        if (link != null) {
+          debugPrint("Received DeepLink during payment: $link");
+          _handleDeepLink(link);
+        }
+      }
+    });
+    _checkInitialLink();
   }
 
-  void _handleUrl(String url) {
-    if (url.contains('payment-success')) {
-      final uri = Uri.parse(url);
-      final paymentKey = uri.queryParameters['paymentKey'] ?? '';
-      final orderNoFromUrl = uri.queryParameters['orderId'] ?? _orderNo;
-      final amountFromUrl = int.tryParse(uri.queryParameters['amount'] ?? '') ?? _amount;
+  Future<void> _checkInitialLink() async {
+    try {
+      final String? initialLink = await _channel.invokeMethod<String>('getInitialLink');
+      if (initialLink != null) {
+        debugPrint("Received initial DeepLink during payment: $initialLink");
+        _handleDeepLink(initialLink);
+      }
+    } catch (e) {
+      debugPrint("Failed to get initial link: $e");
+    }
+  }
 
-      _confirmPayment(paymentKey, orderNoFromUrl, amountFromUrl);
-    } else if (url.contains('payment-fail')) {
-      final uri = Uri.parse(url);
-      final message = uri.queryParameters['message'] ?? '결제에 실패했습니다.';
-      _finishWithFail(message);
+  void _handleDeepLink(String link) {
+    try {
+      final uri = Uri.parse(link);
+      if (uri.scheme == 'asagongpay') {
+        final paymentKey = uri.queryParameters['paymentKey'];
+        final orderId = uri.queryParameters['orderId'] ?? uri.queryParameters['orderNo'] ?? _orderNo;
+        final amountStr = uri.queryParameters['amount'];
+        final amount = amountStr != null ? int.tryParse(amountStr) : _amount;
+
+        if (paymentKey != null && paymentKey.isNotEmpty) {
+          _confirmPayment(paymentKey, orderId, amount ?? _amount);
+        } else {
+          // If no parameters, the card app just returned us to foreground.
+          // In some environments, Toss JS SDK will detect foreground and auto-complete in webview.
+          // Otherwise, we can redirect webview to success page, but we need parameters.
+          // Let's print a warning or load success URL if we can somehow fetch the state.
+          debugPrint("Deep link returned without paymentKey.");
+        }
+      }
+    } catch (e) {
+      debugPrint("Error handling deep link: $e");
     }
   }
 
   Map<String, String>? _parseIntentUrl(String url) {
     try {
-      if (!url.startsWith('intent://')) return null;
-      final intentIndex = url.indexOf('#Intent;');
+      if (!url.startsWith("intent://")) return null;
+      final intentIndex = url.indexOf("#Intent;");
       if (intentIndex == -1) return null;
-      
+
       final uriPath = url.substring(9, intentIndex);
       final paramsStr = url.substring(intentIndex + 8);
-      final params = paramsStr.split(';');
-      
-      String scheme = '';
-      String package = '';
+      final params = paramsStr.split(";");
+
+      String scheme = "";
+      String packageName = "";
       for (var param in params) {
-        if (param.startsWith('scheme=')) {
+        if (param.startsWith("scheme=")) {
           scheme = param.substring(7);
-        } else if (param.startsWith('package=')) {
-          package = param.substring(8);
+        } else if (param.startsWith("package=")) {
+          packageName = param.substring(8);
         }
       }
-      
+
       return {
-        'schemeUrl': scheme.isNotEmpty ? '$scheme://$uriPath' : '',
-        'package': package,
+        "schemeUrl": scheme.isNotEmpty ? "$scheme://$uriPath" : "",
+        "package": packageName,
       };
-    } catch (_) {
+    } catch (e) {
       return null;
     }
   }
 
-  Future<void> _launchExternalApp(String url) async {
-    try {
-      // 1. intent:// scheme parsing
-      if (url.startsWith('intent://')) {
-        final parsed = _parseIntentUrl(url);
-        if (parsed != null) {
-          final schemeUrl = parsed['schemeUrl'] ?? '';
-          final package = parsed['package'] ?? '';
-          
-          if (schemeUrl.isNotEmpty) {
+  String _buildHtml() {
+    final successUrl = "http://localhost/payment-success";
+    final failUrl = "http://localhost/payment-fail";
+    
+    return """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://js.tosspayments.com/v1"></script>
+</head>
+<body>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
             try {
-              // Direct launch attempt without canLaunchUrl check
-              final success = await launchUrl(Uri.parse(schemeUrl), mode: LaunchMode.externalApplication);
-              if (success) return;
-            } catch (_) {}
-          }
-          
-          // Fallback to Google Play market if direct launch fails or scheme is empty
-          if (package.isNotEmpty) {
-            try {
-              final marketUri = Uri.parse('market://details?id=$package');
-              await launchUrl(marketUri, mode: LaunchMode.externalApplication);
-              return;
-            } catch (_) {}
-          }
-        }
-        return;
-      }
-      
-      // 2. Direct launch for normal custom schemes (kakaotalk://, wooripay://, etc.)
-      final uri = Uri.parse(uriStringDecode(url));
-      try {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } catch (_) {
-        // Optional: If direct custom scheme fails, try parsing fallback market or ignore
-      }
-    } catch (e) {
-      debugPrint("Failed to launch external app: $e");
-    }
+                var tossPayments = TossPayments("$_clientKey");
+                tossPayments.requestPayment('CARD', {
+                    amount: $_amount,
+                    orderId: '${_orderNo.replaceAll("'", "\\'")}',
+                    orderName: '${_productName.replaceAll("'", "\\'")}',
+                    successUrl: '$successUrl',
+                    failUrl: '$failUrl',
+                    appScheme: 'asagongpay',
+                });
+            } catch (e) {
+                console.error("TossPayments error:", e);
+            }
+        });
+    </script>
+</body>
+</html>
+    """;
   }
 
-  // Decodes url encoded character safety helper
-  String uriStringDecode(String url) {
-    try {
-      return Uri.decodeFull(url);
-    } catch (_) {
-      return url;
-    }
-  }
-
-  Future<void> _confirmPayment(String paymentKey, String paymentOrderId, int amount) async {
+  Future<void> _confirmPayment(
+    String paymentKey,
+    String paymentOrderId,
+    int amount,
+  ) async {
+    if (_isLoading) return;
     setState(() {
       _isLoading = true;
     });
@@ -267,6 +301,7 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       );
 
       final response = await appService.confirmPayment(req);
+      if (!mounted) return;
       if (response != null && response.success == true) {
         Navigator.pop(context, {
           'status': 'SUCCESS',
@@ -281,23 +316,32 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       }
     } catch (e) {
       _finishWithFail('승인 요청 오류: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   void _finishWithFail(String message) {
-    Navigator.pop(context, {
-      'status': 'FAIL',
-      'message': message,
-    });
+    if (mounted) {
+      Navigator.pop(context, {'status': 'FAIL', 'message': message});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E2C),
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        elevation: 0,
         backgroundColor: const Color(0xFF2E1A47),
-        title: const Text('결제하기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          '결제하기',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -305,12 +349,21 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       ),
       body: Stack(
         children: [
-          if (_clientKey.isNotEmpty) WebViewWidget(controller: _controller),
+          if (_isWidgetInitialized)
+            WebViewWidget(controller: _controller)
+          else
+            const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFFF9100),
+              ),
+            ),
           if (_isLoading)
             Container(
-              color: const Color(0xFF1E1E2C),
+              color: Colors.black.withOpacity(0.3),
               child: const Center(
-                child: CircularProgressIndicator(color: Color(0xFFFF9100)),
+                child: CircularProgressIndicator(
+                  color: Color(0xFFFF9100),
+                ),
               ),
             ),
         ],

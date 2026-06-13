@@ -281,7 +281,7 @@ class _OrderScreenState extends State<OrderScreen> {
         address1: _address1Controller.text.trim(),
         address2: _address2Controller.text.trim(),
         orderMemo: _orderMemoController.text.trim(),
-        branchId: int.tryParse(_productBranchId),
+        branchId: int.tryParse(_branchId) ?? int.tryParse(_productBranchId),
         items: [
           OrderItemRequest(
             productId: _productId,
