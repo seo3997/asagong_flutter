@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "988807738976",
+    "project_id": "kycarrots-ac4ae",
+    "storage_bucket": "kycarrots-ac4ae.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:988807738976:android:8e6adb0c081b6733073505",
+        "android_client_info": {
+          "package_name": "com.whomade.asagongf"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeQP8zhyKXZ3-rGbAB_SHqYnu44nS_ekM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:988807738976:android:41b64ecd1ebf4f5e073505",
+        "android_client_info": {
+          "package_name": "com.whomade.kycarrots"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeQP8zhyKXZ3-rGbAB_SHqYnu44nS_ekM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

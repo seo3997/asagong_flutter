@@ -44,6 +44,8 @@ dependencies:
   url_launcher: ^6.3.0
   stomp_dart_client: ^3.0.1
   tosspayments_widget_sdk_flutter: ^2.2.0
+  firebase_core: ^4.11.0
+  firebase_messaging: ^16.4.0
 
 dev_dependencies:
   flutter_test:
