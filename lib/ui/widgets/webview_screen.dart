@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'app_drawer.dart';
 
 class WebViewScreen extends StatefulWidget {
   const WebViewScreen({super.key});
@@ -12,6 +13,7 @@ class WebViewScreen extends StatefulWidget {
 }
 
 class _WebViewScreenState extends State<WebViewScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late final WebViewController _controller;
   bool _isInitialized = false;
   int _loadingProgress = 0;
@@ -164,21 +166,15 @@ class _WebViewScreenState extends State<WebViewScreen> {
         }
       },
       child: Scaffold(
+        key: _scaffoldKey,
         backgroundColor: const Color(0xFF1E1E2C),
+        drawer: const AppDrawer(currentRoute: '/webview'),
         appBar: AppBar(
           backgroundColor: const Color(0xFF2E1A47),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () async {
-              if (await _controller.canGoBack()) {
-                await _controller.goBack();
-              } else {
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              }
-            },
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           title: Text(
             _title,

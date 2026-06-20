@@ -98,9 +98,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             IconButton(
               icon: const Icon(Icons.notifications_none_outlined, color: Colors.white),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('알림 목록 준비 중입니다.')),
-                );
+                Navigator.pushNamed(context, '/notificationList');
               },
             ),
           ],

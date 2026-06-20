@@ -126,6 +126,14 @@ class _PubHomeScreenState extends State<PubHomeScreen> {
             ),
           ),
           centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications_none, color: Colors.white),
+              onPressed: () {
+                Navigator.pushNamed(context, '/notificationList');
+              },
+            ),
+          ],
           bottom: const TabBar(
             indicatorColor: Color(0xFFFF9100),
             labelColor: Color(0xFFFF9100),
@@ -229,6 +237,14 @@ class _PubHomeScreenState extends State<PubHomeScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none, color: Colors.white),
+            onPressed: () {
+              Navigator.pushNamed(context, '/notificationList');
+            },
+          ),
+        ],
       ),
       body: SafeArea(top: false, bottom: true, child: currentBody),
       bottomNavigationBar: BottomNavigationBar(

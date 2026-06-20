@@ -20,6 +20,7 @@ import 'ui/order/payment_webview_screen.dart';
 import 'ui/order/order_success_screen.dart';
 import 'ui/order/address_search_screen.dart';
 import 'ui/chatting/chat_screen.dart';
+import 'ui/notification/notification_list_screen.dart';
 
 import 'package:flutter/services.dart';
 
@@ -83,6 +84,7 @@ class MyApp extends StatelessWidget {
             '/webview': (context) => const WebViewScreen(),
             '/orderMgt': (context) => const OrderMgtScreen(),
             '/orderMgtDetail': (context) => const OrderMgtDetailScreen(),
+            '/notificationList': (context) => const NotificationListScreen(),
           },
           onGenerateRoute: (settings) {
             final args = settings.arguments;
