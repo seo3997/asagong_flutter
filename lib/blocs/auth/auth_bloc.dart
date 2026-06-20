@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../domain/service/app_service.dart';
 import '../../domain/service/app_service_provider.dart';
 import '../../data/models/login_response.dart';
@@ -15,6 +17,72 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<LoginSubmitted>(_onLoginSubmitted);
     on<LogoutRequested>(_onLogoutRequested);
+  }
+
+  Future<void> _setupFcm(LoginResponse response) async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+
+      // 1. Topic subscriptions (similar to Android's nextPage)
+      final memberCode = response.memberCode;
+      if (memberCode != null && memberCode.isNotEmpty) {
+        await messaging.subscribeToTopic(memberCode);
+        
+        // 지점별 토픽 구독 (지점 권한 ROLE_PROJ 인 경우)
+        if (memberCode == 'ROLE_PROJ' && response.branchInfo != null) {
+          final branchTopic = 'BRANCH_${response.branchInfo!.branchId}_ROLE_PROJ';
+          await messaging.subscribeToTopic(branchTopic);
+        }
+      }
+
+      // 2. Token Registration (similar to PushTokenUtil.ensureTokenRegistered)
+      final userId = response.loginId ?? '';
+      final userNo = response.loginIdx ?? '';
+      if (userId.isNotEmpty && userNo.isNotEmpty) {
+        final token = await messaging.getToken();
+        if (token != null && token.isNotEmpty) {
+          final deviceType = Platform.isIOS ? 'IOS' : 'ANDROID';
+          
+          final prefs = await SharedPreferences.getInstance();
+          final lastToken = prefs.getString('last_fcm_token') ?? '';
+          final lastUserId = prefs.getString('last_user_id') ?? '';
+
+          if (lastToken != token || lastUserId != userId) {
+            final success = await appService.registerPushToken(
+              userNo: userNo,
+              userId: userId,
+              pushToken: token,
+              deviceType: deviceType,
+            );
+            if (success) {
+              await prefs.setString('last_fcm_token', token);
+              await prefs.setString('last_user_id', userId);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  Future<void> _clearFcm(String memberCode, String? branchId) async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+      if (memberCode.isNotEmpty) {
+        await messaging.unsubscribeFromTopic(memberCode);
+      }
+      if (memberCode == 'ROLE_PROJ' && branchId != null && branchId.isNotEmpty) {
+        final branchTopic = 'BRANCH_${branchId}_ROLE_PROJ';
+        await messaging.unsubscribeFromTopic(branchTopic);
+      }
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('last_fcm_token');
+      await prefs.remove('last_user_id');
+    } catch (e) {
+      // Handle error silently
+    }
   }
 
   Future<void> _onAuthCheckRequested(
@@ -45,6 +113,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           await prefs.setString('saved_toss_client_key', response.branchInfo?.tossClientKey ?? '');
           await prefs.setInt('saved_base_shipping_fee', response.branchInfo?.baseShippingFee ?? 0);
           await prefs.setInt('saved_free_shipping_threshold', response.branchInfo?.freeShippingThreshold ?? 0);
+          
+          await _setupFcm(response);
           emit(AuthAuthenticated(response));
         } else {
           // If auto login fails, clear and emit unauthenticated
@@ -87,6 +157,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         await prefs.setInt('saved_base_shipping_fee', response.branchInfo?.baseShippingFee ?? 0);
         await prefs.setInt('saved_free_shipping_threshold', response.branchInfo?.freeShippingThreshold ?? 0);
 
+        await _setupFcm(response);
         emit(AuthAuthenticated(response));
       } else {
         String errMsg = _getErrorMessage(response?.resultCode ?? 500);
@@ -104,6 +175,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     try {
       final prefs = await SharedPreferences.getInstance();
+      final memberCode = prefs.getString('saved_member_code') ?? '';
+      final branchId = prefs.getString('saved_branch_id');
+      
+      await _clearFcm(memberCode, branchId);
       await _clearSession(prefs);
       emit(AuthUnauthenticated());
     } catch (e) {

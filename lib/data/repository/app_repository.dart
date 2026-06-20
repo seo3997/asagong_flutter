@@ -284,4 +284,18 @@ class AppRepository {
   Future<List<ChatMessage>> getChatMessages(String roomId) {
     return apiService.getChatMessages(roomId);
   }
+
+  Future<bool> registerPushToken({
+    required String userNo,
+    required String userId,
+    required String pushToken,
+    required String deviceType,
+  }) {
+    return apiService.registerPushToken(
+      userNo: userNo,
+      userId: userId,
+      pushToken: pushToken,
+      deviceType: deviceType,
+    );
+  }
 }

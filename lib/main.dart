@@ -24,8 +24,13 @@ import 'ui/order/order_success_screen.dart';
 import 'ui/order/address_search_screen.dart';
 import 'ui/chatting/chat_screen.dart';
 import 'ui/notification/notification_list_screen.dart';
+import 'data/repository/push_notification_repository.dart';
+import 'data/models/push_notification_entity.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter/services.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -67,8 +72,153 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _setupPushNotifications();
+  }
+
+  Future<void> _setupPushNotifications() async {
+    // 1. Foreground Message received
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint("FCM onMessage (Foreground): ${message.notification?.title}");
+      _saveNotificationLocally(
+        message.data,
+        message.notification?.title,
+        message.notification?.body,
+      );
+    });
+
+    // 2. App in background -> Clicked -> Opened
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      debugPrint("FCM onMessageOpenedApp: ${message.data}");
+      _saveNotificationLocally(
+        message.data,
+        message.notification?.title,
+        message.notification?.body,
+      );
+      _handlePushNavigation(message.data);
+    });
+
+    // 3. App terminated -> Clicked -> Launched
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      debugPrint("FCM getInitialMessage: ${initialMessage.data}");
+      _saveNotificationLocally(
+        initialMessage.data,
+        initialMessage.notification?.title,
+        initialMessage.notification?.body,
+      );
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        _handlePushNavigation(initialMessage.data);
+      });
+    }
+  }
+
+  Future<void> _saveNotificationLocally(
+    Map<String, dynamic> data,
+    String? notificationTitle,
+    String? notificationBody,
+  ) async {
+    try {
+      final title = notificationTitle ?? data['title']?.toString() ?? '새 알림';
+      final body = notificationBody ?? data['body']?.toString() ?? '알림 내용 없음';
+      final type = data['type']?.toString() ?? 'sys';
+      final targetId = data['targetId']?.toString();
+
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('saved_email') ?? '';
+      if (userId.isEmpty) return;
+
+      final repo = PushNotificationRepository();
+      
+      final list = await repo.getNotifications(userId);
+      final isDuplicate = list.any((n) => 
+        n.type == type && 
+        n.title == title && 
+        n.targetId == targetId && 
+        (DateTime.now().millisecondsSinceEpoch - n.createdAt < 5000)
+      );
+
+      if (isDuplicate) {
+        debugPrint("FCM Duplicate local storage skip");
+        return;
+      }
+
+      String? deeplink;
+      if (type == 'chat') {
+        deeplink = 'app://chat/room/${targetId ?? ""}';
+      } else if (type == 'product') {
+        deeplink = 'app://product/${targetId ?? ""}';
+      } else if (type == 'order') {
+        deeplink = 'app://order/${targetId ?? ""}';
+      }
+
+      final entity = PushNotificationEntity(
+        id: 0,
+        userId: userId,
+        type: type,
+        title: title,
+        body: body,
+        targetId: targetId,
+        deeplink: deeplink,
+        isRead: false,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      );
+
+      await repo.saveNotification(entity);
+      debugPrint("FCM notification saved locally");
+    } catch (e) {
+      debugPrint("Error saving FCM notification locally: $e");
+    }
+  }
+
+  void _handlePushNavigation(Map<String, dynamic> data) async {
+    final type = data['type']?.toString();
+    final targetId = data['targetId']?.toString();
+    if (type == null || type.isEmpty || targetId == null || targetId.isEmpty) return;
+
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+
+    switch (type) {
+      case 'chat':
+        final parts = targetId.split('_');
+        String productId = '';
+        String buyerId = '';
+        String branchId = '';
+        if (parts.length >= 3) {
+          productId = parts[0];
+          buyerId = parts[1];
+          branchId = parts[2];
+        }
+        Navigator.of(context).pushNamed('/chat', arguments: {
+          'roomId': targetId,
+          'buyerId': buyerId,
+          'branchId': branchId,
+          'productId': int.tryParse(productId) ?? 0,
+          'type': type,
+          'msg': data['msg'] ?? '',
+        });
+        break;
+
+      case 'product':
+        Navigator.of(context).pushNamed('/adDetail', arguments: targetId);
+        break;
+
+      case 'order':
+        Navigator.of(context).pushNamed('/orderMgtDetail', arguments: targetId);
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +237,7 @@ class MyApp extends StatelessWidget {
           ),
         ],
         child: MaterialApp(
+          navigatorKey: navigatorKey,
           title: 'asagong',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(

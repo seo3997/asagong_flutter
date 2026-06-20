@@ -457,4 +457,22 @@ class AppService {
       return [];
     }
   }
+
+  Future<bool> registerPushToken({
+    required String userNo,
+    required String userId,
+    required String pushToken,
+    required String deviceType,
+  }) async {
+    try {
+      return await repository.registerPushToken(
+        userNo: userNo,
+        userId: userId,
+        pushToken: pushToken,
+        deviceType: deviceType,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
 }

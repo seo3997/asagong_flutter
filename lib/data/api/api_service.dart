@@ -889,4 +889,30 @@ class ApiService {
       throw Exception('Fetch Chat Messages Failed: ${response.statusCode}');
     }
   }
+
+  /// Registers push token to the server (api/members/push/savetoken)
+  Future<bool> registerPushToken({
+    required String userNo,
+    required String userId,
+    required String pushToken,
+    required String deviceType,
+  }) async {
+    final response = await client.post(
+      Uri.parse('$baseUrl/api/members/push/savetoken'),
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode({
+        'userNo': userNo,
+        'userId': userId,
+        'pushToken': pushToken,
+        'deviceType': deviceType,
+      }),
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      return body['result'] as bool? ?? false;
+    } else {
+      return false;
+    }
+  }
 }
