@@ -6,6 +6,7 @@ import '../../blocs/auth/auth_state.dart';
 import '../../domain/service/app_service.dart';
 import '../../core/constants.dart';
 import '../widgets/app_drawer.dart';
+import '../../main.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -29,6 +30,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadDashboardData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkAndHandlePendingPush();
+    });
   }
 
   Future<void> _loadDashboardData() async {

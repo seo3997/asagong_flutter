@@ -31,6 +31,86 @@ import 'core/local_notification_service.dart';
 import 'package:flutter/services.dart';
 
 String? currentActiveRoomId;
+Map<String, dynamic>? pendingPushData;
+
+void checkAndHandlePendingPush() {
+  final data = pendingPushData;
+  if (data != null) {
+    pendingPushData = null;
+    debugPrint("Found pending push navigation. Processing...");
+    Future.delayed(const Duration(milliseconds: 500), () {
+      handlePushNavigation(data);
+    });
+  }
+}
+
+void handlePushNavigation(Map<String, dynamic> data) async {
+  final type = data['type']?.toString();
+  final targetId = data['targetId']?.toString();
+  if (type == null || type.isEmpty || targetId == null || targetId.isEmpty) return;
+
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('saved_token');
+
+  if (token == null || token.isEmpty) {
+    debugPrint("User not logged in. Saving push navigation as pending.");
+    pendingPushData = data;
+    return;
+  }
+
+  final context = navigatorKey.currentContext;
+  if (context == null) {
+    debugPrint("Navigator context not available. Saving push navigation as pending.");
+    pendingPushData = data;
+    return;
+  }
+
+  // Check the current top-most route name.
+  String? currentRouteName;
+  navigatorKey.currentState?.popUntil((route) {
+    currentRouteName = route.settings.name;
+    return true; // do not pop
+  });
+
+  debugPrint("Current route name check: $currentRouteName");
+
+  // If the current screen is Intro or Login, do not push the detail screen yet
+  if (currentRouteName == '/' || currentRouteName == '/login' || currentRouteName == null) {
+    debugPrint("App is currently in Intro/Login state. Saving push navigation as pending.");
+    pendingPushData = data;
+    return;
+  }
+
+  switch (type) {
+    case 'chat':
+      final parts = targetId.split('_');
+      String productId = '';
+      String buyerId = '';
+      String branchId = '';
+      if (parts.length >= 3) {
+        productId = parts[0];
+        buyerId = parts[1];
+        branchId = parts[2];
+      }
+      Navigator.of(context).pushNamed('/chat', arguments: {
+        'roomId': targetId,
+        'buyerId': buyerId,
+        'branchId': branchId,
+        'productId': productId,
+        'type': type,
+        'msg': data['msg'] ?? '',
+      });
+      break;
+
+    case 'product':
+      Navigator.of(context).pushNamed('/adDetail', arguments: targetId);
+      break;
+
+    case 'order':
+      Navigator.of(context).pushNamed('/orderMgtDetail', arguments: targetId);
+      break;
+  }
+}
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -43,7 +123,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final title = message.notification?.title ?? data['title']?.toString() ?? '새 알림';
   final body = message.notification?.body ?? data['body']?.toString() ?? '알림 내용 없음';
   final type = data['type']?.toString();
-  final targetId = data['targetId']?.toString();
+  final targetId = data['targetId']?.toString() ??
+                   data['roomId']?.toString() ??
+                   data['productId']?.toString() ??
+                   data['orderId']?.toString();
 
   // Save the notification to SharedPreferences from the background
   await saveNotificationLocally(data, title, body);
@@ -66,7 +149,10 @@ Future<void> saveNotificationLocally(
     final title = notificationTitle ?? data['title']?.toString() ?? '새 알림';
     final body = notificationBody ?? data['body']?.toString() ?? '알림 내용 없음';
     final type = data['type']?.toString() ?? 'sys';
-    final targetId = data['targetId']?.toString();
+    final targetId = data['targetId']?.toString() ??
+                     data['roomId']?.toString() ??
+                     data['productId']?.toString() ??
+                     data['orderId']?.toString();
 
     if (type == 'chat' && targetId == currentActiveRoomId && targetId != null) {
       debugPrint("User is in active chat room ($currentActiveRoomId). Suppressing push save.");
@@ -169,21 +255,46 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _setupPushNotifications() async {
-    // Initialize local notifications service and configure its tap response
-    await LocalNotificationService.initialize();
+    // 1. Configure the tap response first (before initialize) to capture app-launch notifications
     LocalNotificationService.onNotificationClick = (payload) {
+      debugPrint("Local notification clicked with payload: $payload");
       if (payload != null && payload.contains('|')) {
         final parts = payload.split('|');
         if (parts.length >= 2) {
           final type = parts[0];
           final targetId = parts[1];
-          _handlePushNavigation({
+          handlePushNavigation({
             'type': type,
             'targetId': targetId,
           });
         }
       }
     };
+    await LocalNotificationService.initialize();
+
+    // 2. Check if the app was launched by clicking a local notification (terminated state)
+    try {
+      final launchDetails = await LocalNotificationService.getAppLaunchDetails();
+      if (launchDetails != null && launchDetails.didNotificationLaunchApp) {
+        final payload = launchDetails.notificationResponse?.payload;
+        debugPrint("App launched via local notification payload: $payload");
+        if (payload != null && payload.contains('|')) {
+          final parts = payload.split('|');
+          if (parts.length >= 2) {
+            final type = parts[0];
+            final targetId = parts[1];
+            Future.delayed(const Duration(milliseconds: 1500), () {
+              handlePushNavigation({
+                'type': type,
+                'targetId': targetId,
+              });
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking app launch local notification: $e");
+    }
 
     // 1. Foreground Message received
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -193,7 +304,10 @@ class _MyAppState extends State<MyApp> {
       final title = message.notification?.title ?? data['title']?.toString() ?? '새 알림';
       final body = message.notification?.body ?? data['body']?.toString() ?? '알림 내용 없음';
       final type = data['type']?.toString();
-      final targetId = data['targetId']?.toString();
+      final targetId = data['targetId']?.toString() ??
+                       data['roomId']?.toString() ??
+                       data['productId']?.toString() ??
+                       data['orderId']?.toString();
 
       // Suppress showing/saving if active in same chat room
       if (type == 'chat' && targetId == currentActiveRoomId && targetId != null) {
@@ -224,7 +338,7 @@ class _MyAppState extends State<MyApp> {
         message.notification?.title,
         message.notification?.body,
       );
-      _handlePushNavigation(message.data);
+      handlePushNavigation(message.data);
     });
 
     // 3. App terminated -> Clicked -> Launched
@@ -237,47 +351,8 @@ class _MyAppState extends State<MyApp> {
         initialMessage.notification?.body,
       );
       Future.delayed(const Duration(milliseconds: 1500), () {
-        _handlePushNavigation(initialMessage.data);
+        handlePushNavigation(initialMessage.data);
       });
-    }
-  }
-
-  void _handlePushNavigation(Map<String, dynamic> data) async {
-    final type = data['type']?.toString();
-    final targetId = data['targetId']?.toString();
-    if (type == null || type.isEmpty || targetId == null || targetId.isEmpty) return;
-
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
-    switch (type) {
-      case 'chat':
-        final parts = targetId.split('_');
-        String productId = '';
-        String buyerId = '';
-        String branchId = '';
-        if (parts.length >= 3) {
-          productId = parts[0];
-          buyerId = parts[1];
-          branchId = parts[2];
-        }
-        Navigator.of(context).pushNamed('/chat', arguments: {
-          'roomId': targetId,
-          'buyerId': buyerId,
-          'branchId': branchId,
-          'productId': int.tryParse(productId) ?? 0,
-          'type': type,
-          'msg': data['msg'] ?? '',
-        });
-        break;
-
-      case 'product':
-        Navigator.of(context).pushNamed('/adDetail', arguments: targetId);
-        break;
-
-      case 'order':
-        Navigator.of(context).pushNamed('/orderMgtDetail', arguments: targetId);
-        break;
     }
   }
 

@@ -36,6 +36,10 @@ class LocalNotificationService {
     _isInitialized = true;
   }
 
+  static Future<NotificationAppLaunchDetails?> getAppLaunchDetails() async {
+    return await _notificationsPlugin.getNotificationAppLaunchDetails();
+  }
+
   static Future<void> showNotification({
     required String title,
     required String body,

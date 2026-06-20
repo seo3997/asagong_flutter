@@ -10,6 +10,7 @@ import '../../data/models/ad_item.dart';
 import '../../data/models/ad_list_request.dart';
 import '../../data/models/payment_models.dart';
 import '../widgets/app_drawer.dart';
+import '../../main.dart';
 
 class PubHomeScreen extends StatefulWidget {
   const PubHomeScreen({super.key});
@@ -32,6 +33,9 @@ class _PubHomeScreenState extends State<PubHomeScreen> {
   void initState() {
     super.initState();
     _loadSession();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkAndHandlePendingPush();
+    });
   }
 
   Future<void> _loadSession() async {
