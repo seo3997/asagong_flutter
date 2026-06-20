@@ -61,14 +61,9 @@ class _IntroScreenState extends State<IntroScreen> with SingleTickerProviderStat
         },
         child: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF2E1A47), // Deep Violet-Black
-                Color(0xFF4A148C), // Dark Purple
-                Color(0xFF6A1B9A), // Deep Purple
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+            image: DecorationImage(
+              image: AssetImage('assets/images/asagong_intro.png'),
+              fit: BoxFit.cover,
             ),
           ),
           child: Center(
@@ -101,7 +96,7 @@ class _IntroScreenState extends State<IntroScreen> with SingleTickerProviderStat
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: Color(0xFF2E1A47),
                     letterSpacing: 1.5,
                   ),
                 ),
@@ -110,8 +105,24 @@ class _IntroScreenState extends State<IntroScreen> with SingleTickerProviderStat
                   '로딩 중입니다...',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.6),
+                    color: const Color(0xFF2E1A47).withOpacity(0.7),
                     letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.4),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3.0,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF9100)),
+                    ),
                   ),
                 ),
               ],
