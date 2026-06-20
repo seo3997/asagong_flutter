@@ -30,6 +30,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter/services.dart';
 
+String? currentActiveRoomId;
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 @pragma('vm:entry-point')
@@ -133,6 +135,11 @@ class _MyAppState extends State<MyApp> {
       final body = notificationBody ?? data['body']?.toString() ?? '알림 내용 없음';
       final type = data['type']?.toString() ?? 'sys';
       final targetId = data['targetId']?.toString();
+
+      if (type == 'chat' && targetId == currentActiveRoomId && targetId != null) {
+        debugPrint("User is in active chat room ($currentActiveRoomId). Suppressing push save.");
+        return;
+      }
 
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('saved_email') ?? '';

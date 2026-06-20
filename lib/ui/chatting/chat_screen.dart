@@ -5,6 +5,7 @@ import '../../core/stomp_service.dart';
 import '../../core/constants.dart';
 import '../../domain/service/app_service.dart';
 import '../../data/models/chat_models.dart';
+import '../../main.dart';
 
 class ChatScreen extends StatefulWidget {
   final Map<String, dynamic> arguments;
@@ -40,6 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _branchId = widget.arguments['branchId'] as String? ?? '';
     _productId = widget.arguments['productId'] as String? ?? '';
     _otherId = widget.arguments['otherUserNm'] as String? ?? _buyerId;
+    currentActiveRoomId = _roomId;
 
     _initializeChat();
   }
@@ -54,6 +56,8 @@ class _ChatScreenState extends State<ChatScreen> {
     stomp.sendExitRoom(_roomId, _currentUserId);
     stomp.unsubscribe('/topic/$_roomId');
     stomp.disconnect();
+
+    currentActiveRoomId = null;
 
     super.dispose();
   }

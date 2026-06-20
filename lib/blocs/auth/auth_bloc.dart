@@ -110,6 +110,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           await prefs.setString('saved_branch_name', response.branchInfo?.branchName ?? '');
           await prefs.setString('saved_branch_id', response.branchInfo?.branchId.toString() ?? '');
           await prefs.setString('saved_login_idx', response.loginIdx ?? '');
+          await prefs.setString('saved_member_code', response.memberCode ?? '');
+          await prefs.setString('saved_login_nm', response.loginNm ?? '');
+          await prefs.setString('saved_user_id', response.loginId ?? email);
           await prefs.setString('saved_toss_client_key', response.branchInfo?.tossClientKey ?? '');
           await prefs.setInt('saved_base_shipping_fee', response.branchInfo?.baseShippingFee ?? 0);
           await prefs.setInt('saved_free_shipping_threshold', response.branchInfo?.freeShippingThreshold ?? 0);
@@ -150,6 +153,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         await prefs.setString('saved_token', response.token!);
         await prefs.setString('saved_member_code', response.memberCode ?? '');
         await prefs.setString('saved_login_nm', response.loginNm ?? '');
+        await prefs.setString('saved_user_id', response.loginId ?? event.email);
         await prefs.setString('saved_branch_name', response.branchInfo?.branchName ?? '');
         await prefs.setString('saved_branch_id', response.branchInfo?.branchId.toString() ?? '');
         await prefs.setString('saved_login_idx', response.loginIdx ?? '');
@@ -190,6 +194,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await prefs.remove('saved_email');
     await prefs.remove('saved_password');
     await prefs.remove('saved_token');
+    await prefs.remove('saved_user_id');
     await prefs.remove('saved_member_code');
     await prefs.remove('saved_login_nm');
     await prefs.remove('saved_branch_name');

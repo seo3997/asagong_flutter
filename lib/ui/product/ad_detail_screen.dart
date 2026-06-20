@@ -572,10 +572,9 @@ class _AdDetailScreenState extends State<AdDetailScreen>
   void _handleFabClick() {
     if (_detail == null) return;
     final pid = _detail!.product.productId ?? '';
-    final branchId = _detail!.product.branchId;
 
     if (_memberCode == Constants.rolePub) {
-      _createOrGetChatRoom(pid, _userId, branchId);
+      _createOrGetChatRoom(pid, _userId, _branchId);
     } else if (_memberCode == Constants.roleSell) {
       _fetchRoomListForSeller(pid, Constants.centerBranchId);
     } else if (_memberCode == Constants.roleProj) {
