@@ -27,7 +27,7 @@ import 'ui/notification/notification_list_screen.dart';
 import 'data/repository/push_notification_repository.dart';
 import 'data/models/push_notification_entity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'core/local_notification_service.dart';
 import 'package:flutter/services.dart';
 
 String? currentActiveRoomId;
@@ -38,6 +38,86 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint("Handling a background message: ${message.messageId}");
+
+  final data = message.data;
+  final title = message.notification?.title ?? data['title']?.toString() ?? '새 알림';
+  final body = message.notification?.body ?? data['body']?.toString() ?? '알림 내용 없음';
+  final type = data['type']?.toString();
+  final targetId = data['targetId']?.toString();
+
+  // Save the notification to SharedPreferences from the background
+  await saveNotificationLocally(data, title, body);
+
+  // Display the notification banner using LocalNotificationService
+  await LocalNotificationService.showNotification(
+    title: title,
+    body: body,
+    type: type,
+    targetId: targetId,
+  );
+}
+
+Future<void> saveNotificationLocally(
+  Map<String, dynamic> data,
+  String? notificationTitle,
+  String? notificationBody,
+) async {
+  try {
+    final title = notificationTitle ?? data['title']?.toString() ?? '새 알림';
+    final body = notificationBody ?? data['body']?.toString() ?? '알림 내용 없음';
+    final type = data['type']?.toString() ?? 'sys';
+    final targetId = data['targetId']?.toString();
+
+    if (type == 'chat' && targetId == currentActiveRoomId && targetId != null) {
+      debugPrint("User is in active chat room ($currentActiveRoomId). Suppressing push save.");
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('saved_email') ?? '';
+    if (userId.isEmpty) return;
+
+    final repo = PushNotificationRepository();
+    
+    final list = await repo.getNotifications(userId);
+    final isDuplicate = list.any((n) => 
+      n.type == type && 
+      n.title == title && 
+      n.targetId == targetId && 
+      (DateTime.now().millisecondsSinceEpoch - n.createdAt < 5000)
+    );
+
+    if (isDuplicate) {
+      debugPrint("FCM Duplicate local storage skip");
+      return;
+    }
+
+    String? deeplink;
+    if (type == 'chat') {
+      deeplink = 'app://chat/room/${targetId ?? ""}';
+    } else if (type == 'product') {
+      deeplink = 'app://product/${targetId ?? ""}';
+    } else if (type == 'order') {
+      deeplink = 'app://order/${targetId ?? ""}';
+    }
+
+    final entity = PushNotificationEntity(
+      id: 0,
+      userId: userId,
+      type: type,
+      title: title,
+      body: body,
+      targetId: targetId,
+      deeplink: deeplink,
+      isRead: false,
+      createdAt: DateTime.now().millisecondsSinceEpoch,
+    );
+
+    await repo.saveNotification(entity);
+    debugPrint("FCM notification saved locally");
+  } catch (e) {
+    debugPrint("Error saving FCM notification locally: $e");
+  }
 }
 
 void main() async {
@@ -89,20 +169,57 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _setupPushNotifications() async {
+    // Initialize local notifications service and configure its tap response
+    await LocalNotificationService.initialize();
+    LocalNotificationService.onNotificationClick = (payload) {
+      if (payload != null && payload.contains('|')) {
+        final parts = payload.split('|');
+        if (parts.length >= 2) {
+          final type = parts[0];
+          final targetId = parts[1];
+          _handlePushNavigation({
+            'type': type,
+            'targetId': targetId,
+          });
+        }
+      }
+    };
+
     // 1. Foreground Message received
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint("FCM onMessage (Foreground): ${message.notification?.title}");
-      _saveNotificationLocally(
+      
+      final data = message.data;
+      final title = message.notification?.title ?? data['title']?.toString() ?? '새 알림';
+      final body = message.notification?.body ?? data['body']?.toString() ?? '알림 내용 없음';
+      final type = data['type']?.toString();
+      final targetId = data['targetId']?.toString();
+
+      // Suppress showing/saving if active in same chat room
+      if (type == 'chat' && targetId == currentActiveRoomId && targetId != null) {
+        debugPrint("User is in active chat room ($currentActiveRoomId). Suppressing push popups.");
+        return;
+      }
+
+      saveNotificationLocally(
         message.data,
         message.notification?.title,
         message.notification?.body,
+      );
+
+      // Display the notification popup banner
+      LocalNotificationService.showNotification(
+        title: title,
+        body: body,
+        type: type,
+        targetId: targetId,
       );
     });
 
     // 2. App in background -> Clicked -> Opened
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint("FCM onMessageOpenedApp: ${message.data}");
-      _saveNotificationLocally(
+      saveNotificationLocally(
         message.data,
         message.notification?.title,
         message.notification?.body,
@@ -114,7 +231,7 @@ class _MyAppState extends State<MyApp> {
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
       debugPrint("FCM getInitialMessage: ${initialMessage.data}");
-      _saveNotificationLocally(
+      saveNotificationLocally(
         initialMessage.data,
         initialMessage.notification?.title,
         initialMessage.notification?.body,
@@ -122,69 +239,6 @@ class _MyAppState extends State<MyApp> {
       Future.delayed(const Duration(milliseconds: 1500), () {
         _handlePushNavigation(initialMessage.data);
       });
-    }
-  }
-
-  Future<void> _saveNotificationLocally(
-    Map<String, dynamic> data,
-    String? notificationTitle,
-    String? notificationBody,
-  ) async {
-    try {
-      final title = notificationTitle ?? data['title']?.toString() ?? '새 알림';
-      final body = notificationBody ?? data['body']?.toString() ?? '알림 내용 없음';
-      final type = data['type']?.toString() ?? 'sys';
-      final targetId = data['targetId']?.toString();
-
-      if (type == 'chat' && targetId == currentActiveRoomId && targetId != null) {
-        debugPrint("User is in active chat room ($currentActiveRoomId). Suppressing push save.");
-        return;
-      }
-
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('saved_email') ?? '';
-      if (userId.isEmpty) return;
-
-      final repo = PushNotificationRepository();
-      
-      final list = await repo.getNotifications(userId);
-      final isDuplicate = list.any((n) => 
-        n.type == type && 
-        n.title == title && 
-        n.targetId == targetId && 
-        (DateTime.now().millisecondsSinceEpoch - n.createdAt < 5000)
-      );
-
-      if (isDuplicate) {
-        debugPrint("FCM Duplicate local storage skip");
-        return;
-      }
-
-      String? deeplink;
-      if (type == 'chat') {
-        deeplink = 'app://chat/room/${targetId ?? ""}';
-      } else if (type == 'product') {
-        deeplink = 'app://product/${targetId ?? ""}';
-      } else if (type == 'order') {
-        deeplink = 'app://order/${targetId ?? ""}';
-      }
-
-      final entity = PushNotificationEntity(
-        id: 0,
-        userId: userId,
-        type: type,
-        title: title,
-        body: body,
-        targetId: targetId,
-        deeplink: deeplink,
-        isRead: false,
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-      );
-
-      await repo.saveNotification(entity);
-      debugPrint("FCM notification saved locally");
-    } catch (e) {
-      debugPrint("Error saving FCM notification locally: $e");
     }
   }
 
