@@ -244,7 +244,7 @@ void main() async {
   AppServiceProvider.initialize();
   
   // Initialize Kakao SDK
-  KakaoSdk.init(nativeAppKey: '7cfedd989e5e9c768c1f70d85ece26e2');
+  KakaoSdk.init(nativeAppKey: '702de162af6c2ac940e8f588abf0753f');
   
   runApp(const MyApp());
 }

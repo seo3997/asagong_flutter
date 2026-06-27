@@ -35,5 +35,5 @@ class Constants {
   static const String roleProj = 'ROLE_PROJ';
 
   static const String centerBranchId = '2';
-  static const String appTestYn = 'N';
+  static const String appTestYn = 'Y';
 }

@@ -6,6 +6,8 @@ import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../core/constants.dart';
 import '../../data/models/social_auth_request.dart';
+import '../../domain/service/app_service.dart';
+import '../../data/models/unlink_social_request.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -90,6 +92,52 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       debugPrint('Kakao login error: $e');
       _showErrorSnackBar('카카오 로그인 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  Future<void> _unlinkKakao() async {
+    try {
+      User user = await UserApi.instance.me();
+      final providerUserId = user.id.toString();
+
+      if (providerUserId.isEmpty) {
+        _showErrorSnackBar('소셜 사용자 ID가 없습니다.');
+        return;
+      }
+
+      await UserApi.instance.unlink();
+      try {
+        await UserApi.instance.logout();
+      } catch (_) {}
+
+      if (mounted) {
+        final appService = context.read<AppService>();
+        final res = await appService.unlinkSocial(
+          UnlinkSocialRequest(
+            provider: 'KAKAO',
+            providerUserId: providerUserId,
+          ),
+        );
+
+        if (res != null && res.result) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('카카오 연결 해제 완료 (서버 링크 삭제)'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('카카오 연결 해제는 되었으나 서버 링크 삭제 실패: ${res?.message}'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Kakao unlink error: $e');
+      _showErrorSnackBar('카카오 연결 해제 중 오류가 발생했습니다: $e');
     }
   }
 
@@ -349,6 +397,32 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
+                        if (Constants.appTestYn == 'Y') ...[
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: state is AuthLoading ? null : _unlinkKakao,
+                            icon: const Icon(
+                              Icons.link_off_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              '카카오 로그인 해제',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.redAccent.withOpacity(0.8),
+                              side: BorderSide.none,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 24),
 
                         // Bottom Actions (Find Account, Register)
