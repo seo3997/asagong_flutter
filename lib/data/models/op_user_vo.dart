@@ -33,6 +33,8 @@ class OpUserVo extends Equatable {
   final String updtDt;
   final String provider;
   final String providerUserId;
+  final String branchId;
+  final String joinAppPackage;
 
   const OpUserVo({
     this.userNo = 0,
@@ -65,6 +67,8 @@ class OpUserVo extends Equatable {
     this.updtDt = '',
     this.provider = '',
     this.providerUserId = '',
+    this.branchId = '',
+    this.joinAppPackage = '',
   });
 
   static int _parseInt(dynamic value) {
@@ -108,6 +112,8 @@ class OpUserVo extends Equatable {
       updtDt: json['updtDt'] as String? ?? '',
       provider: json['provider'] as String? ?? '',
       providerUserId: json['providerUserId'] as String? ?? '',
+      branchId: json['branchId'] as String? ?? '',
+      joinAppPackage: json['joinAppPackage'] as String? ?? '',
     );
   }
 
@@ -143,6 +149,8 @@ class OpUserVo extends Equatable {
       'updtDt': updtDt,
       'provider': provider,
       'providerUserId': providerUserId,
+      'branchId': branchId,
+      'joinAppPackage': joinAppPackage,
     };
   }
 
@@ -178,5 +186,7 @@ class OpUserVo extends Equatable {
         updtDt,
         provider,
         providerUserId,
+        branchId,
+        joinAppPackage,
       ];
 }

@@ -31,3 +31,22 @@ class AuthFailure extends AuthState {
   @override
   List<Object?> get props => [message];
 }
+
+class AuthOnboardingRequired extends AuthState {
+  final String provider;
+  final String providerUserId;
+  final String? nickname;
+  final String? email;
+  final String? profileUrl;
+
+  const AuthOnboardingRequired({
+    required this.provider,
+    required this.providerUserId,
+    this.nickname,
+    this.email,
+    this.profileUrl,
+  });
+
+  @override
+  List<Object?> get props => [provider, providerUserId, nickname, email, profileUrl];
+}

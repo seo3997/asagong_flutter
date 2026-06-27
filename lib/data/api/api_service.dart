@@ -18,6 +18,10 @@ import '../models/order_models.dart';
 import '../models/chat_models.dart';
 import '../models/review_models.dart';
 import '../models/qna_models.dart';
+import '../models/social_auth_request.dart';
+import '../models/link_social_request.dart';
+import '../models/unlink_social_request.dart';
+import '../models/string_response.dart';
 
 class ApiService {
   final String baseUrl;
@@ -913,6 +917,128 @@ class ApiService {
       return body['result'] as bool? ?? false;
     } else {
       return false;
+    }
+  }
+
+  /// GET api/members/find-password
+  Future<StringResponse> findPassword(String mail) async {
+    final response = await client.get(
+      Uri.parse('$baseUrl/api/members/find-password').replace(
+        queryParameters: {'mail': mail},
+      ),
+      headers: {'Accept': 'application/json'},
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      return StringResponse.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+    } else {
+      throw Exception('Find Password Failed: ${response.statusCode}');
+    }
+  }
+
+  /// GET api/members/find-email
+  Future<StringResponse> findEmail(String name, String phone) async {
+    final response = await client.get(
+      Uri.parse('$baseUrl/api/members/find-email').replace(
+        queryParameters: {'nm': name, 'hp': phone},
+      ),
+      headers: {'Accept': 'application/json'},
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      return StringResponse.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+    } else {
+      throw Exception('Find Email Failed: ${response.statusCode}');
+    }
+  }
+
+  /// POST api/members/email-check
+  Future<SimpleResultResponse> checkEmailDuplicate(String email) async {
+    final response = await client.post(
+      Uri.parse('$baseUrl/api/members/email-check'),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: {'email': email},
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      return SimpleResultResponse.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+    } else {
+      throw Exception('Check Email Failed: ${response.statusCode}');
+    }
+  }
+
+  /// POST api/members/register
+  Future<LoginResponse> registerUser(OpUserVo user) async {
+    final response = await client.post(
+      Uri.parse('$baseUrl/api/members/register'),
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode(user.toJson()),
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      return LoginResponse.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+    } else {
+      throw Exception('Register User Failed: ${response.statusCode}');
+    }
+  }
+
+  /// GET /api/branch/list
+  Future<List<BranchInfoVo>> getBranchList() async {
+    final response = await client.get(
+      Uri.parse('$baseUrl/api/branch/list'),
+      headers: {'Accept': 'application/json'},
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      final list = jsonDecode(utf8.decode(response.bodyBytes)) as List;
+      return list.map((item) => BranchInfoVo.fromJson(item as Map<String, dynamic>)).toList();
+    } else {
+      throw Exception('Get Branch List Failed: ${response.statusCode}');
+    }
+  }
+
+  /// POST api/members/social
+  Future<LoginResponse> authSocial(SocialAuthRequest req) async {
+    final response = await client.post(
+      Uri.parse('$baseUrl/api/members/social'),
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode(req.toJson()),
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      return LoginResponse.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+    } else {
+      throw Exception('Social Auth Failed: ${response.statusCode}');
+    }
+  }
+
+  /// POST api/members/link
+  Future<LoginResponse> linkSocial(LinkSocialRequest req) async {
+    final response = await client.post(
+      Uri.parse('$baseUrl/api/members/link'),
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode(req.toJson()),
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      return LoginResponse.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+    } else {
+      throw Exception('Link Social Failed: ${response.statusCode}');
+    }
+  }
+
+  /// POST api/members/unlink
+  Future<SimpleResultResponse> unlinkSocial(UnlinkSocialRequest req) async {
+    final response = await client.post(
+      Uri.parse('$baseUrl/api/members/unlink'),
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode(req.toJson()),
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      return SimpleResultResponse.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+    } else {
+      throw Exception('Unlink Social Failed: ${response.statusCode}');
     }
   }
 }

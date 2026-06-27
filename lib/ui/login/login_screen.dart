@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../core/constants.dart';
+import '../../data/models/social_auth_request.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -48,6 +50,55 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _startKakaoLogin() async {
+    try {
+      bool isInstalled = await isKakaoTalkInstalled();
+      OAuthToken token;
+      if (isInstalled) {
+        token = await UserApi.instance.loginWithKakaoTalk();
+      } else {
+        token = await UserApi.instance.loginWithKakaoAccount();
+      }
+
+      // Fetch user profile
+      User user = await UserApi.instance.me();
+      final kakaoUserId = user.id.toString();
+      final nickname = user.kakaoAccount?.profile?.nickname;
+      final email = user.kakaoAccount?.email;
+      final profileUrl = user.kakaoAccount?.profile?.profileImageUrl;
+
+      if (kakaoUserId.isEmpty) {
+        _showErrorSnackBar('카카오 ID를 가져오지 못했습니다.');
+        return;
+      }
+
+      // Submit social login
+      if (mounted) {
+        context.read<AuthBloc>().add(
+          SocialLoginSubmitted(
+            request: SocialAuthRequest(
+              provider: 'KAKAO',
+              providerUserId: kakaoUserId,
+              accessToken: token.accessToken,
+            ),
+            nickname: nickname,
+            email: email,
+            profileUrl: profileUrl,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Kakao login error: $e');
+      _showErrorSnackBar('카카오 로그인 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  void _showErrorSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red.shade600),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -70,6 +121,17 @@ class _LoginScreenState extends State<LoginScreen> {
             } else {
               Navigator.of(context).pushReplacementNamed('/pubHome');
             }
+          } else if (state is AuthOnboardingRequired) {
+            Navigator.of(context).pushNamed(
+              '/onboarding',
+              arguments: {
+                'provider': state.provider,
+                'providerUserId': state.providerUserId,
+                'email': state.email,
+                'nickname': state.nickname,
+                'profileUrl': state.profileUrl,
+              },
+            );
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -265,13 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Social Kakao Login Button
                         OutlinedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('카카오 로그인 연동 준비 중입니다.'),
-                              ),
-                            );
-                          },
+                          onPressed: state is AuthLoading ? null : _startKakaoLogin,
                           icon: const Icon(
                             Icons.chat_bubble,
                             color: Color(0xFF3E2723),
@@ -300,7 +356,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.of(context).pushNamed('/findEmailPwd');
+                              },
                               child: Text(
                                 '이메일/비밀번호 찾기',
                                 style: TextStyle(
@@ -315,7 +373,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.of(context).pushNamed('/termsAgree');
+                              },
                               child: const Text(
                                 '회원가입',
                                 style: TextStyle(color: Colors.white),

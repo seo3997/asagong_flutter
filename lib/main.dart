@@ -29,6 +29,11 @@ import 'data/models/push_notification_entity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/local_notification_service.dart';
 import 'package:flutter/services.dart';
+import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
+import 'ui/login/find_email_pwd_screen.dart';
+import 'ui/login/terms_agree_screen.dart';
+import 'ui/login/membership_screen.dart';
+import 'ui/login/onboarding_screen.dart';
 
 String? currentActiveRoomId;
 Map<String, dynamic>? pendingPushData;
@@ -237,6 +242,10 @@ void main() async {
 
   // Initialize the global AppServiceProvider
   AppServiceProvider.initialize();
+  
+  // Initialize Kakao SDK
+  KakaoSdk.init(nativeAppKey: '7cfedd989e5e9c768c1f70d85ece26e2');
+  
   runApp(const MyApp());
 }
 
@@ -400,6 +409,9 @@ class _MyAppState extends State<MyApp> {
             '/orderMgt': (context) => const OrderMgtScreen(),
             '/orderMgtDetail': (context) => const OrderMgtDetailScreen(),
             '/notificationList': (context) => const NotificationListScreen(),
+            '/findEmailPwd': (context) => const FindEmailPwdScreen(),
+            '/termsAgree': (context) => const TermsAgreeScreen(),
+            '/membership': (context) => const MembershipScreen(),
           },
           onGenerateRoute: (settings) {
             final args = settings.arguments;
@@ -454,6 +466,17 @@ class _MyAppState extends State<MyApp> {
               case '/addressSearch':
                 return MaterialPageRoute(
                   builder: (context) => const AddressSearchScreen(),
+                );
+              case '/onboarding':
+                final map = args as Map<String, dynamic>;
+                return MaterialPageRoute(
+                  builder: (context) => OnboardingScreen(
+                    provider: map['provider'] as String,
+                    providerUserId: map['providerUserId'] as String,
+                    email: map['email'] as String?,
+                    nickname: map['nickname'] as String?,
+                    profileUrl: map['profileUrl'] as String?,
+                  ),
                 );
               default:
                 return null;

@@ -15,6 +15,10 @@ import '../../data/models/order_models.dart';
 import '../../data/models/chat_models.dart';
 import '../../data/models/review_models.dart';
 import '../../data/models/qna_models.dart';
+import '../../data/models/social_auth_request.dart';
+import '../../data/models/link_social_request.dart';
+import '../../data/models/unlink_social_request.dart';
+import '../../data/models/string_response.dart';
 
 class AppService {
   final AppRepository repository;
@@ -473,6 +477,70 @@ class AppService {
       );
     } catch (_) {
       return false;
+    }
+  }
+
+  Future<StringResponse?> findPassword(String mail) async {
+    try {
+      return await repository.findPassword(mail);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<StringResponse?> findEmail(String name, String phone) async {
+    try {
+      return await repository.findEmail(name, phone);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<SimpleResultResponse?> checkEmailDuplicate(String email) async {
+    try {
+      return await repository.checkEmailDuplicate(email);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<LoginResponse?> registerUser(OpUserVo user) async {
+    try {
+      return await repository.registerUser(user);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<BranchInfoVo>> getBranchList() async {
+    try {
+      return await repository.getBranchList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<LoginResponse?> authSocial(SocialAuthRequest req) async {
+    try {
+      return await repository.authSocial(req);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<LoginResponse?> linkSocial(LinkSocialRequest req) async {
+    try {
+      return await repository.linkSocial(req);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<SimpleResultResponse?> unlinkSocial(UnlinkSocialRequest req) async {
+    try {
+      return await repository.unlinkSocial(req);
+    } catch (_) {
+      return null;
     }
   }
 }

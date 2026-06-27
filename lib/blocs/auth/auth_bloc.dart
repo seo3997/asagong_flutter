@@ -16,6 +16,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       super(AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<LoginSubmitted>(_onLoginSubmitted);
+    on<SocialLoginSubmitted>(_onSocialLoginSubmitted);
+    on<LoginSucceeded>(_onLoginSucceeded);
     on<LogoutRequested>(_onLogoutRequested);
   }
 
@@ -218,6 +220,83 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return '비밀번호가 일치하지 않습니다.';
       default:
         return '로그인에 실패했습니다. (코드: $resultCode)';
+    }
+  }
+
+  Future<void> _onSocialLoginSubmitted(
+    SocialLoginSubmitted event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      final response = await appService.authSocial(event.request);
+      if (response != null) {
+        if (response.resultCode == 200 && response.token != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('saved_email', response.loginId ?? '');
+          await prefs.setString('saved_password', response.loginPwd);
+          await prefs.setString('saved_token', response.token!);
+          await prefs.setString('saved_member_code', response.memberCode ?? '');
+          await prefs.setString('saved_login_nm', response.loginNm ?? '');
+          await prefs.setString('saved_user_id', response.loginId ?? '');
+          await prefs.setString('saved_branch_name', response.branchInfo?.branchName ?? '');
+          await prefs.setString('saved_branch_id', response.branchInfo?.branchId.toString() ?? '');
+          await prefs.setString('saved_login_idx', response.loginIdx ?? '');
+          await prefs.setString('saved_toss_client_key', response.branchInfo?.tossClientKey ?? '');
+          await prefs.setInt('saved_base_shipping_fee', response.branchInfo?.baseShippingFee ?? 0);
+          await prefs.setInt('saved_free_shipping_threshold', response.branchInfo?.freeShippingThreshold ?? 0);
+
+          await _setupFcm(response);
+          emit(AuthAuthenticated(response));
+        } else if (response.resultCode == 604) {
+          emit(AuthOnboardingRequired(
+            provider: event.request.provider,
+            providerUserId: event.request.providerUserId,
+            nickname: event.nickname,
+            email: event.email,
+            profileUrl: event.profileUrl,
+          ));
+        } else {
+          String errMsg = _getErrorMessage(response.resultCode);
+          emit(AuthFailure(errMsg));
+        }
+      } else {
+        emit(AuthFailure('로그인 응답이 없습니다.'));
+      }
+    } catch (e) {
+      emit(AuthFailure('네트워크 오류가 발생했습니다: $e'));
+    }
+  }
+
+  Future<void> _onLoginSucceeded(
+    LoginSucceeded event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      final response = event.loginResponse;
+      if (response.token != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('saved_email', event.email);
+        await prefs.setString('saved_password', event.password);
+        await prefs.setString('saved_token', response.token!);
+        await prefs.setString('saved_member_code', response.memberCode ?? '');
+        await prefs.setString('saved_login_nm', response.loginNm ?? '');
+        await prefs.setString('saved_user_id', response.loginId ?? event.email);
+        await prefs.setString('saved_branch_name', response.branchInfo?.branchName ?? '');
+        await prefs.setString('saved_branch_id', response.branchInfo?.branchId.toString() ?? '');
+        await prefs.setString('saved_login_idx', response.loginIdx ?? '');
+        await prefs.setString('saved_toss_client_key', response.branchInfo?.tossClientKey ?? '');
+        await prefs.setInt('saved_base_shipping_fee', response.branchInfo?.baseShippingFee ?? 0);
+        await prefs.setInt('saved_free_shipping_threshold', response.branchInfo?.freeShippingThreshold ?? 0);
+
+        await _setupFcm(response);
+        emit(AuthAuthenticated(response));
+      } else {
+        emit(AuthFailure('토큰이 비어있습니다.'));
+      }
+    } catch (e) {
+      emit(AuthFailure('세션 저장 중 오류가 발생했습니다: $e'));
     }
   }
 }

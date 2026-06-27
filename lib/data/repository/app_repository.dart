@@ -15,6 +15,10 @@ import '../models/order_models.dart';
 import '../models/chat_models.dart';
 import '../models/review_models.dart';
 import '../models/qna_models.dart';
+import '../models/social_auth_request.dart';
+import '../models/link_social_request.dart';
+import '../models/unlink_social_request.dart';
+import '../models/string_response.dart';
 
 class AppRepository {
   final ApiService apiService;
@@ -297,5 +301,37 @@ class AppRepository {
       pushToken: pushToken,
       deviceType: deviceType,
     );
+  }
+
+  Future<StringResponse> findPassword(String mail) {
+    return apiService.findPassword(mail);
+  }
+
+  Future<StringResponse> findEmail(String name, String phone) {
+    return apiService.findEmail(name, phone);
+  }
+
+  Future<SimpleResultResponse> checkEmailDuplicate(String email) {
+    return apiService.checkEmailDuplicate(email);
+  }
+
+  Future<LoginResponse> registerUser(OpUserVo user) {
+    return apiService.registerUser(user);
+  }
+
+  Future<List<BranchInfoVo>> getBranchList() {
+    return apiService.getBranchList();
+  }
+
+  Future<LoginResponse> authSocial(SocialAuthRequest req) {
+    return apiService.authSocial(req);
+  }
+
+  Future<LoginResponse> linkSocial(LinkSocialRequest req) {
+    return apiService.linkSocial(req);
+  }
+
+  Future<SimpleResultResponse> unlinkSocial(UnlinkSocialRequest req) {
+    return apiService.unlinkSocial(req);
   }
 }
