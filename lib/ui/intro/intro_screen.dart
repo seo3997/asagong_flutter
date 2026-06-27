@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/constants.dart';
+import '../../domain/service/app_service.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
@@ -27,10 +30,92 @@ class _IntroScreenState extends State<IntroScreen> with SingleTickerProviderStat
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    // Trigger auto login check
+    // Trigger app version check and then auto login
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthBloc>().add(AuthCheckRequested());
+      _checkVersionAndAutoLogin();
     });
+  }
+
+  Future<void> _checkVersionAndAutoLogin() async {
+    final appService = context.read<AppService>();
+    final osType = Theme.of(context).platform == TargetPlatform.iOS ? 'FLUTTER_IOS' : 'FLUTTER_ANDROID';
+    final currentVersion = Constants.appVersion;
+
+    try {
+      final res = await appService.checkAppVersion(osType: osType, appVersion: currentVersion);
+      if (res != null && res['success'] == true) {
+        final updateType = res['updateType'] as String? ?? 'NONE';
+        final storeUrl = res['storeUrl'] as String? ?? '';
+        final updateMsg = res['updateMsg'] as String? ?? '새로운 버전이 출시되었습니다.';
+
+        if (updateType == 'FORCE') {
+          // Block navigation and show force update dialog
+          if (mounted) {
+            _showUpdateDialog(updateMsg, storeUrl, isForce: true);
+          }
+          return; // Stop here, do not trigger auto login
+        } else if (updateType == 'OPTIONAL') {
+          // Show optional update dialog, then trigger auto login on 'Later'
+          if (mounted) {
+            final proceed = await _showUpdateDialog(updateMsg, storeUrl, isForce: false);
+            if (!proceed) return; // user clicked Update, which opened URL
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Version check failed, continuing: $e");
+    }
+
+    if (mounted) {
+      context.read<AuthBloc>().add(AuthCheckRequested());
+    }
+  }
+
+  Future<bool> _showUpdateDialog(String message, String storeUrl, {required bool isForce}) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: !isForce,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2E1A47),
+          title: const Text(
+            '업데이트 알림',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            if (!isForce)
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(
+                  '나중에',
+                  style: TextStyle(color: Colors.white.withOpacity(0.6)),
+                ),
+              ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext, false);
+                if (storeUrl.isNotEmpty) {
+                  final uri = Uri.parse(storeUrl);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF9100),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('업데이트'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 
   @override

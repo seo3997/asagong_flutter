@@ -1041,4 +1041,25 @@ class ApiService {
       throw Exception('Unlink Social Failed: ${response.statusCode}');
     }
   }
+
+  /// GET api/appversion/check
+  Future<Map<String, dynamic>> checkAppVersion({
+    required String osType,
+    required String appVersion,
+  }) async {
+    final response = await client.get(
+      Uri.parse('$baseUrl/api/appversion/check').replace(
+        queryParameters: {
+          'osType': osType,
+          'appVersion': appVersion,
+        },
+      ),
+    ).timeout(const Duration(seconds: 15));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } else {
+      throw Exception('Version check failed: ${response.statusCode}');
+    }
+  }
 }

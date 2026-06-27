@@ -36,4 +36,5 @@ class Constants {
 
   static const String centerBranchId = '2';
   static const String appTestYn = 'Y';
+  static const String appVersion = '1.0.0';
 }

@@ -543,4 +543,15 @@ class AppService {
       return null;
     }
   }
+
+  Future<Map<String, dynamic>?> checkAppVersion({
+    required String osType,
+    required String appVersion,
+  }) async {
+    try {
+      return await repository.checkAppVersion(osType: osType, appVersion: appVersion);
+    } catch (_) {
+      return null;
+    }
+  }
 }

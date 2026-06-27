@@ -334,4 +334,11 @@ class AppRepository {
   Future<SimpleResultResponse> unlinkSocial(UnlinkSocialRequest req) {
     return apiService.unlinkSocial(req);
   }
+
+  Future<Map<String, dynamic>> checkAppVersion({
+    required String osType,
+    required String appVersion,
+  }) {
+    return apiService.checkAppVersion(osType: osType, appVersion: appVersion);
+  }
 }
