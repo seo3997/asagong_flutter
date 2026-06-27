@@ -325,52 +325,46 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // Email duplication check is always required first
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _emailController,
-                                    hintText: '이메일 주소',
-                                    icon: Icons.email_outlined,
-                                    keyboardType: TextInputType.emailAddress,
-                                    enabled: !_showRegistrationForm,
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _isEmailChecked = false;
-                                      });
-                                    },
-                                    validator: (val) {
-                                      if (val == null || val.trim().isEmpty) {
-                                        return '이메일을 입력해 주세요.';
-                                      }
-                                      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(val.trim())) {
-                                        return '올바른 이메일 형식이 아닙니다.';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                                if (!_showRegistrationForm) ...[
-                                  const SizedBox(width: 8),
-                                  SizedBox(
-                                    height: 56,
-                                    child: ElevatedButton(
-                                      onPressed: _checkEmailDuplicate,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFFFF9100),
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(16),
-                                        ),
-                                      ),
-                                      child: const Text('연결/가입확인'),
+                            // Email
+                            _buildTextField(
+                              controller: _emailController,
+                              hintText: '이메일 주소',
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              enabled: !_showRegistrationForm,
+                              onChanged: (val) {
+                                setState(() {
+                                  _isEmailChecked = false;
+                                });
+                              },
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return '이메일을 입력해 주세요.';
+                                }
+                                if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(val.trim())) {
+                                  return '올바른 이메일 형식이 아닙니다.';
+                                }
+                                return null;
+                              },
+                            ),
+                            if (!_showRegistrationForm) ...[
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: _checkEmailDuplicate,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFF9100),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
                                     ),
                                   ),
-                                ],
-                              ],
-                            ),
+                                  child: const Text('연결/가입확인'),
+                                ),
+                              ),
+                            ],
                             if (_emailStatusMessage.isNotEmpty) ...[
                               const SizedBox(height: 8),
                               Text(
@@ -382,6 +376,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                             // If email is unique and terms are agreed, show the rest of signup details
                             if (_showRegistrationForm) ...[
+                              // Name
+                              _buildTextField(
+                                controller: _nameController,
+                                hintText: '이름',
+                                icon: Icons.person_outline,
+                                validator: (val) {
+                                  if (val == null || val.trim().isEmpty) {
+                                    return '이름을 입력해 주세요.';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+
                               // Password
                               _buildTextField(
                                 controller: _passwordController,
@@ -409,20 +417,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 validator: (val) {
                                   if (val == null || val.isEmpty) {
                                     return '비밀번호 확인을 입력해 주세요.';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Name
-                              _buildTextField(
-                                controller: _nameController,
-                                hintText: '이름',
-                                icon: Icons.person_outline,
-                                validator: (val) {
-                                  if (val == null || val.trim().isEmpty) {
-                                    return '이름을 입력해 주세요.';
                                   }
                                   return null;
                                 },

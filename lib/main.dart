@@ -410,12 +410,17 @@ class _MyAppState extends State<MyApp> {
             '/orderMgtDetail': (context) => const OrderMgtDetailScreen(),
             '/notificationList': (context) => const NotificationListScreen(),
             '/findEmailPwd': (context) => const FindEmailPwdScreen(),
-            '/termsAgree': (context) => const TermsAgreeScreen(),
             '/membership': (context) => const MembershipScreen(),
           },
           onGenerateRoute: (settings) {
             final args = settings.arguments;
             switch (settings.name) {
+              case '/termsAgree':
+                final map = args as Map<String, dynamic>?;
+                final fromOnboarding = map != null ? (map['fromOnboarding'] as bool? ?? false) : false;
+                return MaterialPageRoute(
+                  builder: (context) => TermsAgreeScreen(fromOnboarding: fromOnboarding),
+                );
               case '/adDetail':
                 final pid = args as String;
                 return MaterialPageRoute(
