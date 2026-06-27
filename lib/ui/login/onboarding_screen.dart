@@ -470,7 +470,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     child: _buildTextField(
                                       controller: _phoneLastController,
                                       hintText: '끝번호',
-                                      icon: Icons.phone_outlined,
                                       keyboardType: TextInputType.number,
                                       validator: (val) => (val == null || val.trim().isEmpty) ? '' : null,
                                     ),
