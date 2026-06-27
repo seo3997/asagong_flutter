@@ -316,106 +316,121 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
+    return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthUnauthenticated) {
           Navigator.of(context).pushReplacementNamed('/login');
         }
       },
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: const Color(0xFF1E1E2C),
-        drawer: const AppDrawer(currentRoute: '/settings'),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF2E1A47),
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
-            onPressed: () {
-              _scaffoldKey.currentState?.openDrawer();
-            },
+      builder: (context, state) {
+        return Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: const Color(0xFF1E1E2C),
+          drawer: const AppDrawer(currentRoute: '/settings'),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF2E1A47),
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () {
+                _scaffoldKey.currentState?.openDrawer();
+              },
+            ),
+            title: const Text(
+              '설정',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            centerTitle: true,
           ),
-          title: const Text(
-            '설정',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          centerTitle: true,
-        ),
-        body: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFFFF9100),
-                ),
-              )
-            : SafeArea(
-                top: false,
-                bottom: true,
-                child: RefreshIndicator(
-                  color: const Color(0xFFFF9100),
-                  onRefresh: _loadUserInfo,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                      if (_errorMsg != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
-                          ),
-                          child: Text(
-                            _errorMsg!,
-                            style: const TextStyle(color: Colors.redAccent, fontSize: 14),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                      
-                      // Profile Glassmorphism Card
-                      if (_userInfo != null) _buildProfileCard(_userInfo!),
-                      
-                      const SizedBox(height: 16),
+          body: Stack(
+            children: [
+              _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFFF9100),
+                      ),
+                    )
+                  : SafeArea(
+                      top: false,
+                      bottom: true,
+                      child: RefreshIndicator(
+                        color: const Color(0xFFFF9100),
+                        onRefresh: _loadUserInfo,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (_errorMsg != null) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                                  ),
+                                  child: Text(
+                                    _errorMsg!,
+                                    style: const TextStyle(color: Colors.redAccent, fontSize: 14),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                              ],
+                              
+                              // Profile Glassmorphism Card
+                              if (_userInfo != null) _buildProfileCard(_userInfo!),
+                              
+                              const SizedBox(height: 16),
 
-                      // Push Notifications Switch Tile
-                      _buildPushSettingsTile(),
+                              // Push Notifications Switch Tile
+                              _buildPushSettingsTile(),
 
-                      const SizedBox(height: 16),
+                              const SizedBox(height: 16),
 
-                      // Collapsible Password Change Layout
-                      _buildPasswordChangeCollapse(),
+                              // Collapsible Password Change Layout
+                              _buildPasswordChangeCollapse(),
 
-                      const SizedBox(height: 32),
-                      
-                      // Logout Button
-                      ElevatedButton.icon(
-                        onPressed: _showLogoutConfirmDialog,
-                        icon: const Icon(Icons.logout_rounded),
-                        label: const Text(
-                          '로그아웃',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.06),
-                          foregroundColor: Colors.redAccent,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(color: Colors.redAccent.withOpacity(0.4)),
+                              const SizedBox(height: 32),
+                              
+                              // Logout Button
+                              ElevatedButton.icon(
+                                onPressed: _showLogoutConfirmDialog,
+                                icon: const Icon(Icons.logout_rounded),
+                                label: const Text(
+                                  '로그아웃',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white.withOpacity(0.06),
+                                  foregroundColor: Colors.redAccent,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(color: Colors.redAccent.withOpacity(0.4)),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
+                    ),
+              if (state is AuthLoading)
+                Container(
+                  color: Colors.black54,
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFFF9100),
+                    ),
                   ),
                 ),
-              ),
-            ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
